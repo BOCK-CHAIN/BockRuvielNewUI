@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'config/supabase_config.dart';
+import 'services/auth_service.dart';
 import 'providers/theme_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -15,11 +14,8 @@ void main() async {
   // Initialize SharedPreferences
   await SharedPreferences.getInstance();
 
-  // Initialize Supabase
-  await Supabase.initialize(
-    url: SupabaseConfig.url,
-    anonKey: SupabaseConfig.anonKey,
-  );
+  // Load saved session
+  await AuthService.loadSavedSession();
 
   runApp(
     ChangeNotifierProvider(
@@ -40,7 +36,7 @@ class InstagramCloneApp extends StatelessWidget {
       title: 'Ruviel - Instagram Clone',
       debugShowCheckedModeBanner: false,
       theme: themeProvider.themeData,
-      initialRoute: '/login',
+      initialRoute: AuthService.isAuthenticated ? '/home' : '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
