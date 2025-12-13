@@ -5,6 +5,7 @@ import 'dotenv/config';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import postRoutes from './routes/post.js';
+import activityRoutes from './routes/activity.js'; // Added this line
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use('/api', authRoutes);
 app.use('/api', userRoutes);
 app.use('/api', postRoutes);
+app.use('/api', activityRoutes); // Added this line
 
 app.get('/', (req, res) => {
   res.send('Hello from the backend!');
