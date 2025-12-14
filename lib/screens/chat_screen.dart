@@ -56,174 +56,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildConversationList(bool isLarge) {
-    TextEditingController searchController = TextEditingController();
-    String searchQuery = "";
-
-    return StatefulBuilder(
-      builder: (context, setStateSB) {
-        return Column(
-          children: [
-            // 🔎 Search Bar
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: TextField(
-                controller: searchController,
-                onChanged: (value) {
-                  setStateSB(() {
-                    searchQuery = value.trim().toLowerCase();
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: "Search users",
-                  prefixIcon: Icon(Icons.search, color: Theme.of(context).iconTheme.color),
-                  filled: true,
-                  fillColor: Theme.of(context).inputDecorationTheme.fillColor ?? Theme.of(context).colorScheme.surface,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-
-            Expanded(
-              child: FutureBuilder(
-                future: ChatService.getConversations(),
-                builder: (context, snap) {
-                  if (!snap.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final convos = snap.data as List;
-
-                  // If no conversations exist → show ALL users
-                  if (convos.isEmpty) {
-                    return FutureBuilder(
-                      future: ChatService.getAllUsers(),
-                      builder: (context, snap2) {
-                        if (!snap2.hasData) {
-                          return const Center(
-                              child: CircularProgressIndicator());
-                        }
-
-                        List<UserModel> users = snap2.data!;
-
-                        // 🔎 Apply search filter
-                        if (searchQuery.isNotEmpty) {
-                          users = users
-                              .where((u) =>
-                                  u.username.toLowerCase().contains(searchQuery))
-                              .toList();
-                        }
-
-                        if (users.isEmpty) {
-                          return const Center(child: Text("No users found"));
-                        }
-
-                        return ListView.builder(
-                          itemCount: users.length,
-                          itemBuilder: (context, i) {
-                            final user = users[i];
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundImage: user.profileImageUrl != null
-                                    ? NetworkImage(user.profileImageUrl!)
-                                    : const AssetImage("assets/images/story1.jpg")
-                                        as ImageProvider,
-                              ),
-                              title: Text(
-                                user.username,
-                                style:
-                                    const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: const Text("Start chat"),
-                              onTap: () {
-                                if (isLarge) {
-                                  setState(() => selectedUser = user);
-                                } else {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          ChatScreenLive(otherUser: user),
-                                    ),
-                                  );
-                                }
-                              },
-                            );
-                          },
-                        );
-                      },
-                    );
-                  }
-
-                  // If conversations exist → show conversation list
-                  List filteredConvos = convos;
-
-                  // 🔎 Apply search to existing conversations
-                  if (searchQuery.isNotEmpty) {
-                    filteredConvos = convos.where((c) {
-                      final name = c["username"]?.toLowerCase() ?? "";
-                      return name.contains(searchQuery);
-                    }).toList();
-                  }
-
-                  if (filteredConvos.isEmpty) {
-                    return const Center(child: Text("No users match your search"));
-                  }
-
-                  return ListView.builder(
-                    itemCount: filteredConvos.length,
-                    itemBuilder: (context, i) {
-                      final c = filteredConvos[i];
-
-                      final user = UserModel(
-                        id: c['user_id'],
-                        email: '',
-                        username: c['username'],
-                        profileImageUrl: c['profile_image_url'],
-                        createdAt: DateTime.now(),
-                      );
-
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundImage: user.profileImageUrl != null
-                              ? NetworkImage(user.profileImageUrl!)
-                              : const AssetImage("assets/images/story1.jpg")
-                                  as ImageProvider,
-                        ),
-                        title: Text(
-                          user.username,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(c['last_message'] ?? ""),
-                        onTap: () {
-                          if (isLarge) {
-                            setState(() => selectedUser = user);
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    ChatScreenLive(otherUser: user),
-                              ),
-                            );
-                          }
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
+    return const Center(child: Text("No conversations yet."));
   }
-
-  }
-
+}
 
 class ChatScreenLive extends StatefulWidget {
   final UserModel otherUser;
@@ -243,30 +78,10 @@ class _ChatScreenLiveState extends State<ChatScreenLive> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scroll = ScrollController();
   List<MessageModel> _messages = [];
-  dynamic _channel;
 
   @override
   void initState() {
     super.initState();
-    _loadMessages();
-    _subscribe();
-  }
-
-  Future<void> _loadMessages() async {
-    _messages =
-        await ChatService.fetchMessages(widget.otherUser.id);
-    setState(() {});
-    _scrollToBottom();
-  }
-
-  void _subscribe() {
-    _channel = ChatService.subscribeToMessages(
-      widget.otherUser.id,
-      (msg) {
-        setState(() => _messages.add(msg));
-        _scrollToBottom();
-      },
-    );
   }
 
   void _scrollToBottom() {
@@ -281,19 +96,15 @@ class _ChatScreenLiveState extends State<ChatScreenLive> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    _controller.clear();
-    final msg =
-        await ChatService.sendMessage(widget.otherUser.id, text);
+    final currentUserId = AuthService.currentUserId;
+    if (currentUserId == null) return;
 
-    if (msg != null) {
-      setState(() => _messages.add(msg));
-      _scrollToBottom();
-    }
+    _controller.clear();
+    await ChatService.sendMessage(widget.otherUser.id, currentUserId, text);
   }
 
   @override
   void dispose() {
-    _channel?.unsubscribe();
     _controller.dispose();
     _scroll.dispose();
     super.dispose();

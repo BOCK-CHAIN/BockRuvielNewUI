@@ -6,37 +6,37 @@ const router = Router();
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-// Follow user
-router.post('/follow', async (req, res) => {
-  const { userId, followedId } = req.body;
+// Get comments
+router.get('/comments', async (req, res) => {
+  const { postId } = req.query;
 
   try {
     const { data, error } = await supabase
-      .from('followers')
-      .insert([{ user_id: followedId, followed_by: userId }]);
+      .from('comments')
+      .select('*, profiles(*)')
+      .eq('post_id', postId)
+      .order('created_at');
 
     if (error) throw error;
 
-    res.status(201).json(data);
+    res.status(200).json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Unfollow user
-router.delete('/unfollow', async (req, res) => {
-  const { userId, followedId } = req.body;
+// Create comment
+router.post('/comments', async (req, res) => {
+  const { postId, userId, content } = req.body;
 
   try {
     const { data, error } = await supabase
-      .from('followers')
-      .delete()
-      .eq('user_id', followedId)
-      .eq('followed_by', userId);
+      .from('comments')
+      .insert([{ post_id: postId, user_id: userId, content: content }]);
 
     if (error) throw error;
 
-    res.status(200).json(data);
+    res.status(201).json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/comment_service.dart';
+import '../models/comment_model.dart';
+import '../services/auth_service.dart';
 
 class CommentSection extends StatefulWidget {
   final String postId;
-  
+
   const CommentSection({
     super.key,
     required this.postId,
@@ -16,7 +18,7 @@ class CommentSection extends StatefulWidget {
 
 class _CommentSectionState extends State<CommentSection> {
   final TextEditingController _commentController = TextEditingController();
-  List<Map<String, dynamic>> _comments = [];
+  List<CommentModel> _comments = [];
   bool _isLoading = true;
 
   @override
@@ -49,8 +51,11 @@ class _CommentSectionState extends State<CommentSection> {
     final content = _commentController.text.trim();
     if (content.isEmpty) return;
 
+    final currentUserId = AuthService.currentUserId;
+    if (currentUserId == null) return;
+
     try {
-      await CommentService.addComment(widget.postId, content);
+      await CommentService.createComment(widget.postId, currentUserId, content);
       _commentController.clear();
       await _loadComments();
     } catch (e) {
@@ -93,35 +98,28 @@ class _CommentSectionState extends State<CommentSection> {
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final comment = _comments[index];
-              final user = comment['user'] as Map<String, dynamic>? ?? {};
-              final createdAt = comment['created_at'] != null
-                  ? DateTime.parse(comment['created_at'])
-                  : DateTime.now();
-
-              final username = (user['username'] as String?) ?? 'Anonymous';
-              final avatarUrl = user['profile_image_url'] as String?;
 
               return ListTile(
-                leading: avatarUrl != null && avatarUrl.isNotEmpty
-                    ? CircleAvatar(backgroundImage: NetworkImage(avatarUrl))
+                leading: comment.profileImageUrl != null && comment.profileImageUrl!.isNotEmpty
+                    ? CircleAvatar(backgroundImage: NetworkImage(comment.profileImageUrl!))
                     : CircleAvatar(
                         backgroundColor: Colors.grey.shade300,
                         child: Text(
-                          username.isNotEmpty ? username[0].toUpperCase() : '?',
+                          comment.username.isNotEmpty ? comment.username[0].toUpperCase() : '?',
                           style: const TextStyle(color: Colors.black),
                         ),
                       ),
                 title: Text(
-                  username,
+                  comment.username,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(comment['comment'] ?? ''),
+                    Text(comment.comment),
                     const SizedBox(height: 4),
                     Text(
-                      DateFormat('MMM d, y • h:mm a').format(createdAt),
+                      DateFormat('MMM d, y • h:mm a').format(comment.createdAt),
                       style: Theme.of(context).textTheme.labelSmall,
                     ),
                   ],

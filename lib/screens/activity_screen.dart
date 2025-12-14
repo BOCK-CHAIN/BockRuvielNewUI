@@ -65,6 +65,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   void _handleFollowBack(String userId) async {
     try {
+      final currentUserId = AuthService.currentUserId;
+      if (currentUserId == null) return;
+
       // Optimistically add a follow activity locally so user sees immediate feedback
       final optimistic = ActivityModel(
         id: 'local-${DateTime.now().millisecondsSinceEpoch}',
@@ -83,12 +86,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
       });
 
       // Perform follow via FollowService
-      await FollowService.followUser(userId);
+      await FollowService.followUser(currentUserId, userId);
 
       // Create an activity record for the follow on the server
       await ActivityService.createActivity(
-        type: ActivityType.follow,
-        targetUserId: userId,
+        ActivityType.follow.name,
+        currentUserId,
+        userId,
       );
 
       // Refresh server-side activities to sync IDs/timestamps
@@ -177,9 +181,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
                                 }
 
                                 await ActivityService.createActivity(
-                                  type: ActivityType.like,
-                                  targetUserId: current,
-                                  commentText: 'debug-test',
+                                  ActivityType.like.name,
+                                  current,
+                                  current,
                                 );
 
                                 await _loadActivities();

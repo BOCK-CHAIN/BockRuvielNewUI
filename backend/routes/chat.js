@@ -6,37 +6,37 @@ const router = Router();
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-// Follow user
-router.post('/follow', async (req, res) => {
-  const { userId, followedId } = req.body;
+// Get messages
+router.get('/messages', async (req, res) => {
+  const { chatId } = req.query;
 
   try {
     const { data, error } = await supabase
-      .from('followers')
-      .insert([{ user_id: followedId, followed_by: userId }]);
+      .from('messages')
+      .select('*, profiles(*)')
+      .eq('chat_id', chatId)
+      .order('created_at');
 
     if (error) throw error;
 
-    res.status(201).json(data);
+    res.status(200).json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Unfollow user
-router.delete('/unfollow', async (req, res) => {
-  const { userId, followedId } = req.body;
+// Send message
+router.post('/messages', async (req, res) => {
+  const { chatId, userId, content } = req.body;
 
   try {
     const { data, error } = await supabase
-      .from('followers')
-      .delete()
-      .eq('user_id', followedId)
-      .eq('followed_by', userId);
+      .from('messages')
+      .insert([{ chat_id: chatId, user_id: userId, content: content }]);
 
     if (error) throw error;
 
-    res.status(200).json(data);
+    res.status(201).json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

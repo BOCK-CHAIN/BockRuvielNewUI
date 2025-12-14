@@ -57,14 +57,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final file = File(_mediaFile!.path);
-      await StoryService.createStory(
-        imageFile: _isVideo ? null : file,
-        videoFile: _isVideo ? file : null,
-        caption: _captionController.text.trim().isEmpty
-            ? null
-            : _captionController.text.trim(),
-      );
+      await StoryService.uploadStory(_mediaFile!, _isVideo ? 'video' : 'image');
 
       if (mounted) {
         Navigator.of(context).pop(true); // Return success
@@ -102,7 +95,6 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Media Type Toggle
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -121,7 +113,6 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
             ),
             const SizedBox(height: 20),
             
-            // Media Preview
             if (_mediaFile != null)
               _isVideo
                   ? AspectRatio(
@@ -177,7 +168,6 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
             
             const SizedBox(height: 20),
             
-            // Select Media Button
             ElevatedButton(
               onPressed: _pickMedia,
               child: Text(_isVideo ? 'Select Video' : 'Select Image'),
@@ -185,7 +175,6 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
             
             const SizedBox(height: 20),
             
-            // Caption Field
             TextField(
               controller: _captionController,
               decoration: const InputDecoration(

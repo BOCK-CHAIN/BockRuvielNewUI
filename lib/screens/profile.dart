@@ -37,58 +37,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadProfile();
   }
 
-  Future<void> _changeProfilePicture() async {
-    if (userProfile == null) return;
-
-    try {
-      final result = await ImagePickerHelper.pickImage();
-      if (result == null) return;
-
-      Uint8List? imageBytes;
-      File? imageFile;
-
-      if (result['isWeb'] == true) {
-        imageBytes = result['bytes'] as Uint8List?;
-      } else {
-        imageFile = result['file'] as File?;
-      }
-
-      setState(() => isLoading = true);
-
-      final url = await AuthService.uploadProfileImage(
-        imageBytes: imageBytes,
-        imageFile: imageFile,
-      );
-
-      if (!mounted) return;
-      if (url != null) {
-        await _loadProfile();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile picture updated')), 
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update profile picture')), 
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating profile picture: $e')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
-    }
-  }
-
   Future<void> _loadProfile() async {
     setState(() => isLoading = true);
     try {
       final profile = await AuthService.getCurrentUserProfile();
       if (profile != null) {
-        // Only fetch Instagram posts for profile
         final userPosts = await PostService.fetchUserPosts(
           profile.id,
           postType: 'instagram',
@@ -131,11 +84,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextButton(
-              onPressed: _changeProfilePicture,
-              child: const Text("Change profile photo"),
-            ),
-            const SizedBox(height: 8),
             TextField(
                 controller: nameController,
               decoration: const InputDecoration(labelText: "Full Name"),
@@ -167,7 +115,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           bio: bioController.text.trim().isEmpty ? null : bioController.text.trim(),
         );
         if (mounted) {
-          _loadProfile(); // Reload profile
+          _loadProfile();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Profile updated successfully!')),
           );
@@ -189,7 +137,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     
     if (result == true) {
-      _loadProfile(); // Reload posts
+      _loadProfile();
     }
   }
 
@@ -333,8 +281,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         GestureDetector(
                           onTap: () async {
-                            // Tap on avatar: if user has stories, view; else create
-                            final stories = await StoryService.fetchUserStories(userProfile!.id);
+                            final stories = await StoryService.getStories();
                             if (!context.mounted) return;
 
                             if (stories.isEmpty) {
@@ -356,7 +303,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               );
                             }
                           },
-                          onLongPress: _changeProfilePicture,
                           child: CircleAvatar(
                             radius: 40,
                             backgroundImage: userProfile!.profileImageUrl != null &&
@@ -433,7 +379,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         if (userProfile!.bio != null && userProfile!.bio!.isNotEmpty) ...[
-                        const SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
                             userProfile!.bio!,
                             style: const TextStyle(fontSize: 15),
@@ -502,16 +448,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     )
                   : SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 2,
-                  mainAxisSpacing: 2,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final post = posts[index];
-                    return GestureDetector(
-                      onTap: () => _openPost(post),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 2,
+                        mainAxisSpacing: 2,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final post = posts[index];
+                          return GestureDetector(
+                            onTap: () => _openPost(post),
                             child: post.imageUrl != null
                                 ? Image.network(
                                     post.imageUrl!,
@@ -536,11 +482,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     color: Colors.grey[200],
                                     child: const Icon(Icons.image, color: Colors.grey),
                                   ),
-                    );
-                  },
-                  childCount: posts.length,
-                ),
-              ),
+                          );
+                        },
+                        childCount: posts.length,
+                      ),
+                    ),
             ),
           ],
         ),

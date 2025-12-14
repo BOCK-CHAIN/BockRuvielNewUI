@@ -7,7 +7,9 @@ import userRoutes from './routes/users.js';
 import postRoutes from './routes/post.js';
 import activityRoutes from './routes/activity.js';
 import followRoutes from './routes/follow.js';
-import storyRoutes from './routes/story.js'; // Added this line
+import storyRoutes from './routes/story.js';
+import chatRoutes from './routes/chat.js';
+import commentRoutes from './routes/comment.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -21,7 +23,9 @@ app.use('/api', userRoutes);
 app.use('/api', postRoutes);
 app.use('/api', activityRoutes);
 app.use('/api', followRoutes);
-app.use('/api', storyRoutes); // Added this line
+app.use('/api', storyRoutes);
+app.use('/api', chatRoutes);
+app.use('/api', commentRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello from the backend!');

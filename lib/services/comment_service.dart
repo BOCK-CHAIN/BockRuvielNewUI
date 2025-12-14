@@ -1,49 +1,26 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'auth_service.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../models/comment_model.dart';
 
 class CommentService {
-  static final supabase = Supabase.instance.client;
+  static const String _backendUrl = 'http://localhost:3000/api';
 
-  static Future<List<Map<String, dynamic>>> getComments(String postId) async {
-    final response = await supabase
-        .from('comments')
-        .select('''
-          *, 
-          user:user_id (id, username, profile_image_url)
-        ''')
-        .eq('post_id', postId)
-        .order('created_at', ascending: false);
+  static Future<List<CommentModel>> getComments(String postId) async {
+    final response = await http.get(Uri.parse('$_backendUrl/comments?postId=$postId'));
 
-    return List<Map<String, dynamic>>.from(response);
+    if (response.statusCode == 200) {
+      final List<dynamic> commentsJson = jsonDecode(response.body);
+      return commentsJson.map((json) => CommentModel.fromJson(json)).toList();
+    } else {
+      return [];
+    }
   }
 
-  static Future<void> addComment(String postId, String content) async {
-    final user = supabase.auth.currentUser;
-    if (user == null) throw Exception('User not authenticated');
-
-    // Get profile to populate username column (NOT NULL in schema)
-    final profile = await AuthService.getCurrentUserProfile();
-    if (profile == null) throw Exception('Profile not found');
-
-    final commentId = DateTime.now().millisecondsSinceEpoch.toString();
-
-    await supabase.from('comments').insert({
-      'id': commentId,
-      'post_id': postId,
-      'user_id': user.id,
-      'username': profile.username,
-      'comment': content,
-    });
-  }
-
-  static Future<void> deleteComment(String commentId) async {
-    final user = supabase.auth.currentUser;
-    if (user == null) throw Exception('User not authenticated');
-
-    await supabase
-        .from('comments')
-        .delete()
-        .eq('id', commentId)
-        .eq('user_id', user.id);
+  static Future<void> createComment(String postId, String userId, String content) async {
+    await http.post(
+      Uri.parse('$_backendUrl/comments'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'postId': postId, 'userId': userId, 'content': content}),
+    );
   }
 }

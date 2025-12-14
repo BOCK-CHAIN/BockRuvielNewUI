@@ -21,7 +21,6 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> {
   List<PostModel> posts = [];
-  List<UserModel> suggestedUsers = [];
   UserModel? currentUserProfile;
   bool isLoading = true;
   bool isRefreshing = false;
@@ -35,15 +34,12 @@ class _FeedScreenState extends State<FeedScreen> {
   Future<void> _loadFeed() async {
     setState(() => isLoading = true);
     try {
-      // Only fetch Instagram posts for the feed
       final fetchedPosts = await PostService.fetchPosts(postType: 'instagram');
-      final suggestions = await FollowService.getSuggestedUsers(limit: 5);
       final profile = await AuthService.getCurrentUserProfile();
 
       if (mounted) {
-      setState(() {
+        setState(() {
           posts = fetchedPosts;
-          suggestedUsers = suggestions;
           currentUserProfile = profile;
           isLoading = false;
         });
@@ -70,7 +66,6 @@ class _FeedScreenState extends State<FeedScreen> {
       MaterialPageRoute(builder: (_) => const SelectPostTypeScreen()),
     );
     
-    // Refresh feed when returning from create post
     if (result == true) {
       _refreshFeed();
     }
@@ -117,107 +112,102 @@ class _FeedScreenState extends State<FeedScreen> {
     Widget feed = RefreshIndicator(
       onRefresh: _refreshFeed,
       child: ListView(
-      children: [
-          // Stories section (placeholder - can be integrated with StoryService later)
-        SizedBox(
-          height: 130,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: 1, // Just "Your Story" for now
-            itemBuilder: (context, index) {
-              final String initials = (currentUserProfile?.username.isNotEmpty ?? false)
-                  ? currentUserProfile!.username[0].toUpperCase()
-                  : '?';
+        children: [
+          SizedBox(
+            height: 130,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: 1, // Just "Your Story" for now
+              itemBuilder: (context, index) {
+                final String initials = (currentUserProfile?.username.isNotEmpty ?? false)
+                    ? currentUserProfile!.username[0].toUpperCase()
+                    : '?';
 
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      onTap: () async {
-                        if (currentUserProfile == null) return;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                  child: Column(
+                    children: [
+                      GestureDetector(
+                        onTap: () async {
+                          if (currentUserProfile == null) return;
 
-                        // Check if user already has active stories
-                        final List<StoryModel> stories =
-                            await StoryService.fetchUserStories(currentUserProfile!.id);
+                          final List<StoryModel> stories =
+                              await StoryService.getStories();
 
-                        if (!context.mounted) return;
+                          if (!context.mounted) return;
 
-                        if (stories.isEmpty) {
-                          // No story yet -> create one
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CreateStoryScreen(),
+                          if (stories.isEmpty) {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const CreateStoryScreen(),
+                              ),
+                            );
+                          } else {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => StoryViewerScreen(
+                                  stories: stories,
+                                  userId: currentUserProfile!.id,
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        child: Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 32,
+                              backgroundImage:
+                                  currentUserProfile?.profileImageUrl != null &&
+                                          currentUserProfile!.profileImageUrl!.isNotEmpty
+                                      ? NetworkImage(currentUserProfile!.profileImageUrl!)
+                                      : null,
+                              child: (currentUserProfile?.profileImageUrl == null ||
+                                      currentUserProfile!.profileImageUrl!.isEmpty)
+                                  ? Text(
+                                      initials,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 20,
+                                      ),
+                                    )
+                                  : null,
                             ),
-                          );
-                        } else {
-                          // View existing stories
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => StoryViewerScreen(
-                                stories: stories,
-                                userId: currentUserProfile!.id,
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.blue,
+                                ),
+                                child: const Icon(Icons.add, size: 18, color: Colors.white),
                               ),
                             ),
-                          );
-                        }
-                      },
-                      child: Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 32,
-                            backgroundImage:
-                                currentUserProfile?.profileImageUrl != null &&
-                                        currentUserProfile!.profileImageUrl!.isNotEmpty
-                                    ? NetworkImage(currentUserProfile!.profileImageUrl!)
-                                    : null,
-                            child: (currentUserProfile?.profileImageUrl == null ||
-                                    currentUserProfile!.profileImageUrl!.isEmpty)
-                                ? Text(
-                                    initials,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 20,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.blue,
-                              ),
-                              child: const Icon(Icons.add, size: 18, color: Colors.white),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 5),
-                    const SizedBox(
-                      width: 65,
-                      child: Text(
-                        "Your Story",
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
+                      const SizedBox(height: 5),
+                      const SizedBox(
+                        width: 65,
+                        child: Text(
+                          "Your Story",
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            },
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
-        ),
           
-          // Posts
           if (posts.isEmpty)
             const Padding(
               padding: EdgeInsets.all(40.0),
@@ -241,7 +231,7 @@ class _FeedScreenState extends State<FeedScreen> {
             )
           else
             for (var post in posts) _buildPostCard(post),
-      ],
+        ],
       ),
     );
 
@@ -293,147 +283,6 @@ class _FeedScreenState extends State<FeedScreen> {
               child: feed,
             ),
           ),
-
-          // Right sidebar for large screens
-          if (screenWidth > 1000)
-            Expanded(
-              flex: 1,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 20, right: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Current user profile
-                    if (currentUserProfile != null)
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 28,
-                            backgroundImage:
-                                currentUserProfile!.profileImageUrl != null &&
-                                        currentUserProfile!.profileImageUrl!.isNotEmpty
-                                    ? NetworkImage(currentUserProfile!.profileImageUrl!)
-                                    : null,
-                            child: (currentUserProfile!.profileImageUrl == null ||
-                                    currentUserProfile!.profileImageUrl!.isEmpty)
-                                ? Text(
-                                    currentUserProfile!.username.isNotEmpty
-                                        ? currentUserProfile!.username[0].toUpperCase()
-                                        : '?',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                                Text(
-                                  currentUserProfile!.username,
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                Text(
-                                  currentUserProfile!.fullName ?? '',
-                                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                                ),
-                          ],
-                        ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      "Suggested for you",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    const SizedBox(height: 10),
-                    Expanded(
-                      child: suggestedUsers.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'No suggestions',
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                            )
-                          : ListView.builder(
-                              itemCount: suggestedUsers.length,
-                              itemBuilder: (context, index) {
-                                final user = suggestedUsers[index];
-                                final hasAvatar = user.profileImageUrl != null &&
-                                    user.profileImageUrl!.isNotEmpty;
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 6),
-                                  child: Row(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 20,
-                                        backgroundImage:
-                                            hasAvatar ? NetworkImage(user.profileImageUrl!) : null,
-                                        child: !hasAvatar
-                                            ? Text(
-                                                user.username.isNotEmpty
-                                                    ? user.username[0].toUpperCase()
-                                                    : '?',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              )
-                                            : null,
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              user.username,
-                                              style: const TextStyle(fontWeight: FontWeight.bold),
-                                            ),
-                                            Text(
-                                              '${user.followersCount} followers',
-                                              style: const TextStyle(color: Colors.grey, fontSize: 12),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      TextButton(
-                                        onPressed: () async {
-                                          try {
-                                            await FollowService.followUser(user.id);
-                                            if (mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(content: Text('Followed!')),
-                                              );
-                                              _refreshFeed();
-                                            }
-                                          } catch (e) {
-                                            if (mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text('Error: $e')),
-                                              );
-                                            }
-                                          }
-                                        },
-                                        child: const Text(
-                                          "Follow",
-                                          style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -471,7 +320,7 @@ class _FeedScreenState extends State<FeedScreen> {
           GestureDetector(
             onDoubleTap: () => _toggleLike(post),
             child: AspectRatio(
-            aspectRatio: 1,
+              aspectRatio: 1,
               child: Image.network(
                 post.imageUrl!,
                 fit: BoxFit.cover,
@@ -489,7 +338,6 @@ class _FeedScreenState extends State<FeedScreen> {
                 },
               ),
             ),
-
           )
         else if (post.caption != null && post.caption!.isNotEmpty)
           Padding(
@@ -539,21 +387,21 @@ class _FeedScreenState extends State<FeedScreen> {
         const SizedBox(height: 4),
 
         if (post.caption != null && post.caption!.isNotEmpty)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: RichText(
-            text: TextSpan(
-              style: const TextStyle(color: Colors.black),
-              children: [
-                TextSpan(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(color: Colors.black),
+                children: [
+                  TextSpan(
                     text: "${post.username} ",
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   TextSpan(text: post.caption!),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
 
         if (post.commentsCount > 0)
           Padding(
@@ -579,13 +427,12 @@ class _FeedScreenState extends State<FeedScreen> {
         const Divider(),
       ],
     );
-}
+  }
 
   Future<void> _toggleLike(PostModel post) async {
     try {
       final wasLiked = post.isLiked;
       
-      // Optimistic update
       setState(() {
         final index = posts.indexOf(post);
         if (index != -1) {
@@ -603,12 +450,11 @@ class _FeedScreenState extends State<FeedScreen> {
             createdAt: post.createdAt,
             updatedAt: post.updatedAt,
           );
-    }
+        }
       });
 
       await PostService.toggleLike(post.id);
     } catch (e) {
-      // Revert on error
       _refreshFeed();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

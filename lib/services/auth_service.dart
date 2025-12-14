@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 
 class AuthService {
-  static const String _backendUrl = 'http://localhost:3000/api'; // Replace with your backend URL
+  static const String _backendUrl = 'https://3000-firebase-bockruvielnewui-1765656860067.cluster-44kx2eiocbhe2tyk3zoyo3ryuo.cloudworkstations.dev/api'; // Replace with your backend URL
 
   static UserModel? _currentUser;
 
