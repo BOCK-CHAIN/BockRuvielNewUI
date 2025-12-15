@@ -18,6 +18,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool isLoading = false;
   bool obscurePassword = true;
   bool obscureConfirmPassword = true;
+  final AuthService _authService = AuthService();
 
   Future<void> register() async {
     if (!_formKey.currentState!.validate()) {
@@ -33,7 +34,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => isLoading = true);
     try {
-      await AuthService.signUp(
+      await _authService.signUp(
         email: emailController.text.trim(),
         password: passwordController.text,
         username: usernameController.text.trim(),
@@ -45,7 +46,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
       
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Account created successfully! Please login.")),
+        const SnackBar(content: Text("Account created successfully! Please check your email for verification.")),
       );
       
       Navigator.pushReplacementNamed(context, '/login');
@@ -214,5 +215,3 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
-
-

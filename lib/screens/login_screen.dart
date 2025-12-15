@@ -14,6 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final passwordController = TextEditingController();
   bool isLoading = false;
   bool obscurePassword = true;
+  final AuthService _authService = AuthService();
 
   Future<void> login() async {
     if (!_formKey.currentState!.validate()) {
@@ -22,7 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => isLoading = true);
     try {
-      await AuthService.signIn(
+      await _authService.signIn(
         email: emailController.text.trim(),
         password: passwordController.text,
       );
@@ -147,4 +148,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-

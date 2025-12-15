@@ -7,9 +7,10 @@ import '../models/comment_model.dart';
 import 'auth_service.dart';
 
 class PostService {
-  static const String _backendUrl = 'http://localhost:3000/api';
+  final String _backendUrl = 'http://localhost:3000/api';
+  final AuthService _authService = AuthService();
 
-  static Future<String?> uploadImage({
+  Future<String?> uploadImage({
     Uint8List? imageBytes,
     File? imageFile,
     required String userId,
@@ -20,16 +21,16 @@ class PostService {
     return null;
   }
 
-  static Future<PostModel?> createPost({
+  Future<PostModel?> createPost({
     required String caption,
     Uint8List? imageBytes,
     File? imageFile,
     String postType = 'instagram', 
   }) async {
-    final userId = AuthService.currentUserId;
+    final userId = _authService.currentUser?.id;
     if (userId == null) throw Exception('User not authenticated');
 
-    final profile = await AuthService.getCurrentUserProfile();
+    final profile = await _authService.getCurrentUserProfile();
     if (profile == null) throw Exception('Profile not found');
 
     // Image upload would be handled by a separate endpoint on your backend
@@ -55,12 +56,12 @@ class PostService {
     }
   }
 
-  static Future<List<PostModel>> fetchPosts({
+  Future<List<PostModel>> fetchPosts({
     int limit = 20,
     int offset = 0,
     String? postType,
   }) async {
-    final userId = AuthService.currentUserId;
+    final userId = _authService.currentUser?.id;
     final queryParameters = {
       'limit': limit.toString(),
       'offset': offset.toString(),
@@ -79,11 +80,11 @@ class PostService {
     }
   }
 
-  static Future<List<PostModel>> fetchUserPosts(
+  Future<List<PostModel>> fetchUserPosts(
     String userId, {
     String? postType,
   }) async {
-    final currentUserId = AuthService.currentUserId;
+    final currentUserId = _authService.currentUser?.id;
     final queryParameters = {
       if (postType != null) 'postType': postType,
     };
@@ -100,8 +101,8 @@ class PostService {
     }
   }
 
-  static Future<bool> toggleLike(String postId) async {
-    final userId = AuthService.currentUserId;
+  Future<bool> toggleLike(String postId) async {
+    final userId = _authService.currentUser?.id;
     if (userId == null) throw Exception('User not authenticated');
 
     final response = await http.post(
@@ -117,11 +118,11 @@ class PostService {
     }
   }
 
-  static Future<CommentModel?> addComment(String postId, String commentText) async {
-    final userId = AuthService.currentUserId;
+  Future<CommentModel?> addComment(String postId, String commentText) async {
+    final userId = _authService.currentUser?.id;
     if (userId == null) throw Exception('User not authenticated');
 
-    final profile = await AuthService.getCurrentUserProfile();
+    final profile = await _authService.getCurrentUserProfile();
     if (profile == null) throw Exception('Profile not found');
 
     final response = await http.post(
@@ -141,7 +142,7 @@ class PostService {
     }
   }
 
-  static Future<List<CommentModel>> fetchComments(String postId) async {
+  Future<List<CommentModel>> fetchComments(String postId) async {
     final response = await http.get(Uri.parse('$_backendUrl/posts/$postId/comments'));
 
     if (response.statusCode == 200) {
@@ -152,8 +153,8 @@ class PostService {
     }
   }
 
-  static Future<void> deletePost(String postId) async {
-    final userId = AuthService.currentUserId;
+  Future<void> deletePost(String postId) async {
+    final userId = _authService.currentUser?.id;
     if (userId == null) throw Exception('User not authenticated');
 
     final response = await http.delete(

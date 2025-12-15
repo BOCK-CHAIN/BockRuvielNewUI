@@ -18,6 +18,7 @@ class CommentSection extends StatefulWidget {
 
 class _CommentSectionState extends State<CommentSection> {
   final TextEditingController _commentController = TextEditingController();
+  final AuthService _authService = AuthService();
   List<CommentModel> _comments = [];
   bool _isLoading = true;
 
@@ -51,7 +52,7 @@ class _CommentSectionState extends State<CommentSection> {
     final content = _commentController.text.trim();
     if (content.isEmpty) return;
 
-    final currentUserId = AuthService.currentUserId;
+    final currentUserId = _authService.currentUser?.id;
     if (currentUserId == null) return;
 
     try {

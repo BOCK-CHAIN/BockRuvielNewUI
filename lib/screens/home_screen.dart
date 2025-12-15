@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'activity_screen.dart';
 import 'feed_screen.dart';
 import 'profile.dart';
@@ -20,6 +21,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  final AuthService _authService = AuthService();
 
   final List<Widget> _screens = [
     const FeedScreen(),
@@ -40,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _logout(BuildContext context) async {
     try {
-      await AuthService.signOut();
+      await _authService.signOut();
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
@@ -220,4 +222,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
