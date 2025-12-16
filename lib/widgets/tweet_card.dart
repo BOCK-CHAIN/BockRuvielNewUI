@@ -42,6 +42,7 @@ class _TweetCardState extends State<TweetCard>
     with SingleTickerProviderStateMixin {
   late Map<String, dynamic> _post;
   late AnimationController _likeController;
+  final PostService _postService = PostService();
 
   @override
   void initState() {
@@ -140,7 +141,7 @@ class _TweetCardState extends State<TweetCard>
     }
 
     try {
-      await PostService.toggleLike(_id);
+      await _postService.toggleLike(_id);
     } catch (_) {}
   }
 
@@ -317,7 +318,7 @@ class _TweetCardState extends State<TweetCard>
 
                               if (_id.isNotEmpty) {
                                 try {
-                                  final created = await PostService.addComment(
+                                  final created = await _postService.addComment(
                                       _id, value);
                                   if (created != null) {
                                     comment = TweetComment(

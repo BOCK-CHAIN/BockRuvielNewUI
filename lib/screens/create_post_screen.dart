@@ -17,6 +17,7 @@ class CreatePostScreen extends StatefulWidget {
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final TextEditingController _captionController = TextEditingController();
+  final PostService _postService = PostService();
   File? _selectedImageFile;
   Uint8List? _selectedImageBytes;
   bool _isPosting = false;
@@ -57,7 +58,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     setState(() => _isPosting = true);
 
     try {
-      final post = await PostService.createPost(
+      final post = await _postService.createPost(
         caption: _captionController.text.trim(),
         imageBytes: _selectedImageBytes,
         imageFile: _selectedImageFile,
