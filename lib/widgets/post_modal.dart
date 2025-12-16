@@ -13,6 +13,7 @@ class PostModal extends StatefulWidget {
 }
 
 class _PostModalState extends State<PostModal> {
+  final PostService _postService = PostService();
   late PostModel _post;
 
   @override
@@ -174,7 +175,7 @@ class _PostModalState extends State<PostModal> {
                                 : _post.likesCount + 1,
                           );
                         });
-                        await PostService.toggleLike(_post.id);
+                        await _postService.toggleLike(_post.id);
                       } catch (e) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(

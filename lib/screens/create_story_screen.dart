@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/story_service.dart';
-import '../services/auth_service.dart';
 
 class CreateStoryScreen extends StatefulWidget {
   const CreateStoryScreen({super.key});
@@ -13,6 +12,7 @@ class CreateStoryScreen extends StatefulWidget {
 }
 
 class _CreateStoryScreenState extends State<CreateStoryScreen> {
+  final StoryService _storyService = StoryService();
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
   bool _isVideo = false;
@@ -57,7 +57,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await StoryService.uploadStory(_mediaFile!, _isVideo ? 'video' : 'image');
+      await _storyService.uploadStory(_mediaFile!, _isVideo ? 'video' : 'image');
 
       if (mounted) {
         Navigator.of(context).pop(true); // Return success

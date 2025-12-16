@@ -3,14 +3,14 @@ import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import '../models/reel_model.dart';
-import '../config/supabase_config.dart';
 import 'auth_service.dart';
 
 class ReelService {
-  static final _client = Supabase.instance.client;
+  final _client = Supabase.instance.client;
+  final AuthService _authService = AuthService();
 
   /// Upload reel video to Supabase Storage
-  static Future<String?> uploadReelVideo({
+  Future<String?> uploadReelVideo({
     Uint8List? videoBytes,
     File? videoFile,
     required String userId,
@@ -22,18 +22,18 @@ class ReelService {
 
       if (kIsWeb && videoBytes != null) {
         await _client.storage
-            .from(SupabaseConfig.reelsBucket)
+            .from('reels')
             .uploadBinary(storagePath, videoBytes,
                 fileOptions: const FileOptions(upsert: true));
       } else if (!kIsWeb && videoFile != null) {
         await _client.storage
-            .from(SupabaseConfig.reelsBucket)
+            .from('reels')
             .upload(storagePath, videoFile,
                 fileOptions: const FileOptions(upsert: true));
       }
 
       final publicUrl = _client.storage
-          .from(SupabaseConfig.reelsBucket)
+          .from('reels')
           .getPublicUrl(storagePath);
       return publicUrl;
     } catch (e) {
@@ -43,16 +43,16 @@ class ReelService {
   }
 
   /// Create a new reel
-  static Future<ReelModel?> createReel({
+  Future<ReelModel?> createReel({
     required String videoUrl,
     String? caption,
     String? music,
   }) async {
     try {
-      final userId = AuthService.currentUserId;
+      final userId = await _authService.currentUserId;
       if (userId == null) throw Exception('User not authenticated');
 
-      final profile = await AuthService.getCurrentUserProfile();
+      final profile = await _authService.getCurrentUserProfile();
       if (profile == null) throw Exception('Profile not found');
 
       final reelId = DateTime.now().millisecondsSinceEpoch.toString();
@@ -77,9 +77,9 @@ class ReelService {
   }
 
   /// Fetch reels for feed
-  static Future<List<ReelModel>> fetchReels({int limit = 20, int offset = 0}) async {
+  Future<List<ReelModel>> fetchReels({int limit = 20, int offset = 0}) async {
     try {
-      final userId = AuthService.currentUserId;
+      final userId = await _authService.currentUserId;
 
       final response = await _client
           .from('reels')
@@ -102,9 +102,9 @@ class ReelService {
   }
 
   /// Toggle like on a reel
-  static Future<bool> toggleLike(String reelId) async {
+  Future<bool> toggleLike(String reelId) async {
     try {
-      final userId = AuthService.currentUserId;
+      final userId = await _authService.currentUserId;
       if (userId == null) throw Exception('User not authenticated');
 
       // Check if already liked
@@ -142,6 +142,3 @@ class ReelService {
     }
   }
 }
-
-
-

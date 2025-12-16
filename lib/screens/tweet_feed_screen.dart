@@ -16,6 +16,7 @@ class TweetFeedScreen extends StatefulWidget {
 }
 
 class _TweetFeedScreenState extends State<TweetFeedScreen> {
+  final PostService _postService = PostService();
   final TextEditingController _tweetController = TextEditingController();
   File? _selectedImageFile;
   Uint8List? _selectedImageBytes;
@@ -31,7 +32,7 @@ class _TweetFeedScreenState extends State<TweetFeedScreen> {
   // ✅ Load all tweets from Supabase
   Future<void> _loadTweets() async {
     // Only fetch Twitter posts
-    final posts = await PostService.fetchPosts(postType: 'twitter');
+    final posts = await _postService.fetchPosts(postType: 'twitter');
     setState(() {
       _tweets
         ..clear()
@@ -72,7 +73,7 @@ class _TweetFeedScreenState extends State<TweetFeedScreen> {
         _selectedImageFile == null &&
         _selectedImageBytes == null) return;
 
-    await PostService.createPost(
+    await _postService.createPost(
       caption: _tweetController.text.trim(),
       imageBytes: _selectedImageBytes,
       imageFile: _selectedImageFile,
@@ -103,7 +104,7 @@ class _TweetFeedScreenState extends State<TweetFeedScreen> {
     // ✅ Backend call (safe to fail silently for demo)
     try {
       if (postId != null && postId.isNotEmpty) {
-        await PostService.toggleLike(postId);
+        await _postService.toggleLike(postId);
       }
     } catch (e) {
       // Revert UI if backend fails
@@ -126,7 +127,7 @@ class _TweetFeedScreenState extends State<TweetFeedScreen> {
     final postId = _tweets[index]["id"]?.toString();
     if (postId == null) return;
 
-    final newComment = await PostService.addComment(postId, comment);
+    final newComment = await _postService.addComment(postId, comment);
 
     if (newComment != null && mounted) {
       setState(() {

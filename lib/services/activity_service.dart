@@ -4,9 +4,9 @@ import '../models/activity_model.dart';
 import 'auth_service.dart';
 
 class ActivityService {
-  static const String _backendUrl = 'http://localhost:3000/api';
+  final String _backendUrl = 'http://localhost:3000/api';
 
-  static Future<List<ActivityModel>> fetchActivity() async {
+  Future<List<ActivityModel>> fetchActivity() async {
     final response = await http.get(Uri.parse('$_backendUrl/activity'));
 
     if (response.statusCode == 200) {
@@ -17,17 +17,17 @@ class ActivityService {
     }
   }
 
-  static Future<void> createActivity(String type, String fromUserId, String toUserId, {String? postId}) async {
+  Future<void> createActivity(String type, String fromUserId, String toUserId, {String? postId}) async {
     await http.post(
       Uri.parse('$_backendUrl/activity'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
-      body: jsonEncode(<String, String>{
+      body: jsonEncode(<String, String?>{
         'type': type,
         'fromUserId': fromUserId,
         'toUserId': toUserId,
-        'postId': postId ?? '',
+        'postId': postId,
       }),
     );
   }

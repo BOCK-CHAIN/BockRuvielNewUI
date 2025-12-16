@@ -52,11 +52,11 @@ class _CommentSectionState extends State<CommentSection> {
     final content = _commentController.text.trim();
     if (content.isEmpty) return;
 
-    final currentUserId = _authService.currentUser?.id;
-    if (currentUserId == null) return;
+    final currentUser = await _authService.currentUser;
+    if (currentUser == null) return;
 
     try {
-      await CommentService.createComment(widget.postId, currentUserId, content);
+      await CommentService.createComment(widget.postId, currentUser.id, content);
       _commentController.clear();
       await _loadComments();
     } catch (e) {

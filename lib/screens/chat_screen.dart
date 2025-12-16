@@ -75,20 +75,22 @@ class ChatScreenLive extends StatefulWidget {
 }
 
 class _ChatScreenLiveState extends State<ChatScreenLive> {
+  final AuthService _authService = AuthService();
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scroll = ScrollController();
-  List<MessageModel> _messages = [];
+  final List<MessageModel> _messages = [];
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
+    _loadCurrentUser();
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) {
-        _scroll.jumpTo(_scroll.position.maxScrollExtent);
-      }
+  void _loadCurrentUser() async {
+    final userId = await _authService.currentUserId;
+    setState(() {
+      _currentUserId = userId;
     });
   }
 
@@ -96,11 +98,10 @@ class _ChatScreenLiveState extends State<ChatScreenLive> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    final currentUserId = AuthService.currentUserId;
-    if (currentUserId == null) return;
+    if (_currentUserId == null) return;
 
     _controller.clear();
-    await ChatService.sendMessage(widget.otherUser.id, currentUserId, text);
+    await ChatService.sendMessage(widget.otherUser.id, _currentUserId!, text);
   }
 
   @override
@@ -140,7 +141,7 @@ class _ChatScreenLiveState extends State<ChatScreenLive> {
               decoration: InputDecoration(
                 hintText: "Message...",
                 filled: true,
-                fillColor: theme.inputDecorationTheme.fillColor ?? theme.colorScheme.background,
+                fillColor: theme.inputDecorationTheme.fillColor ?? theme.colorScheme.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
                 ),
@@ -162,7 +163,7 @@ class _ChatScreenLiveState extends State<ChatScreenLive> {
         itemCount: _messages.length,
         itemBuilder: (context, i) {
           final msg = _messages[i];
-          final isMe = msg.senderId == AuthService.currentUserId;
+          final isMe = msg.senderId == _currentUserId;
 
           return Align(
             alignment:
@@ -173,7 +174,7 @@ class _ChatScreenLiveState extends State<ChatScreenLive> {
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: isMe
-                    ? theme.colorScheme.primary.withOpacity(0.25)
+                    ? theme.colorScheme.primary.withAlpha(64)
                     : theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
               ),

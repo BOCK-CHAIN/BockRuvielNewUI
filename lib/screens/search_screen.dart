@@ -14,6 +14,7 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final PostService _postService = PostService();
 
   List<ExploreItem> _allItems = [];
   List<ExploreItem> _filteredItems = [];
@@ -35,7 +36,7 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() => _isLoading = true);
     try {
       // Only fetch Instagram posts for explore page
-      final posts = await PostService.fetchPosts(
+      final posts = await _postService.fetchPosts(
         limit: 60,
         postType: 'instagram',
       );

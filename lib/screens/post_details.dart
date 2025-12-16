@@ -17,6 +17,7 @@ class PostDetailScreen extends StatefulWidget {
 }
 
 class _PostDetailScreenState extends State<PostDetailScreen> {
+  final PostService _postService = PostService();
   late PostModel currentPost;
   late List<PostModel> relatedPosts;
   bool isLoading = false;
@@ -62,7 +63,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         );
       });
 
-      await PostService.toggleLike(currentPost.id);
+      await _postService.toggleLike(currentPost.id);
     } catch (e) {
       setState(() => currentPost = widget.post);
       if (mounted) {

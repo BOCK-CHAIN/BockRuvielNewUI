@@ -27,6 +27,9 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final AuthService _authService = AuthService();
+  final PostService _postService = PostService();
+  final StoryService _storyService = StoryService();
   UserModel? userProfile;
   List<PostModel> posts = [];
   bool isLoading = true;
@@ -40,9 +43,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadProfile() async {
     setState(() => isLoading = true);
     try {
-      final profile = await AuthService.getCurrentUserProfile();
+      final profile = await _authService.getCurrentUserProfile();
       if (profile != null) {
-        final userPosts = await PostService.fetchUserPosts(
+        final userPosts = await _postService.fetchUserPosts(
           profile.id,
           postType: 'instagram',
         );
@@ -110,7 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (result == true) {
       try {
-        await AuthService.updateProfile(
+        await _authService.updateProfile(
           fullName: nameController.text.trim().isEmpty ? null : nameController.text.trim(),
           bio: bioController.text.trim().isEmpty ? null : bioController.text.trim(),
         );
@@ -189,7 +192,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onTap: () async {
                 Navigator.pop(context);
                 try {
-                  await AuthService.signOut();
+                  await _authService.signOut();
                   if (mounted) {
                     Navigator.pushAndRemoveUntil(
                       context,
@@ -281,7 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         GestureDetector(
                           onTap: () async {
-                            final stories = await StoryService.getStories();
+                            final stories = await _storyService.getStories();
                             if (!context.mounted) return;
 
                             if (stories.isEmpty) {

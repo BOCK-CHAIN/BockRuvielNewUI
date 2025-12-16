@@ -10,6 +10,10 @@ class PostService {
   final String _backendUrl = 'http://localhost:3000/api';
   final AuthService _authService = AuthService();
 
+  Future<String?> _getUserId() async {
+    return await _authService.currentUserId;
+  }
+
   Future<String?> uploadImage({
     Uint8List? imageBytes,
     File? imageFile,
@@ -27,7 +31,7 @@ class PostService {
     File? imageFile,
     String postType = 'instagram', 
   }) async {
-    final userId = _authService.currentUser?.id;
+    final userId = await _getUserId();
     if (userId == null) throw Exception('User not authenticated');
 
     final profile = await _authService.getCurrentUserProfile();
@@ -61,7 +65,7 @@ class PostService {
     int offset = 0,
     String? postType,
   }) async {
-    final userId = _authService.currentUser?.id;
+    final userId = await _getUserId();
     final queryParameters = {
       'limit': limit.toString(),
       'offset': offset.toString(),
@@ -84,7 +88,7 @@ class PostService {
     String userId, {
     String? postType,
   }) async {
-    final currentUserId = _authService.currentUser?.id;
+    final currentUserId = await _getUserId();
     final queryParameters = {
       if (postType != null) 'postType': postType,
     };
@@ -102,7 +106,7 @@ class PostService {
   }
 
   Future<bool> toggleLike(String postId) async {
-    final userId = _authService.currentUser?.id;
+    final userId = await _getUserId();
     if (userId == null) throw Exception('User not authenticated');
 
     final response = await http.post(
@@ -119,7 +123,7 @@ class PostService {
   }
 
   Future<CommentModel?> addComment(String postId, String commentText) async {
-    final userId = _authService.currentUser?.id;
+    final userId = await _getUserId();
     if (userId == null) throw Exception('User not authenticated');
 
     final profile = await _authService.getCurrentUserProfile();
@@ -154,7 +158,7 @@ class PostService {
   }
 
   Future<void> deletePost(String postId) async {
-    final userId = _authService.currentUser?.id;
+    final userId = await _getUserId();
     if (userId == null) throw Exception('User not authenticated');
 
     final response = await http.delete(

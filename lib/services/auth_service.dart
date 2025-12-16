@@ -40,6 +40,11 @@ class AuthService {
     return null;
   }
 
+  Future<String?> get currentUserId async {
+    final user = await currentUser;
+    return user?.id;
+  }
+
   Future<void> signUp({
     required String email,
     required String password,
@@ -118,6 +123,7 @@ class AuthService {
         fullName: user['user_metadata']?['full_name'],
         bio: user['user_metadata']?['bio'],
         profileImageUrl: user['user_metadata']?['profile_image_url'],
+        createdAt: DateTime.parse(user['created_at']),
       );
     } else {
       return null;

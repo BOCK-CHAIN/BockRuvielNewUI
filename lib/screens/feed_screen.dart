@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/post_service.dart';
 import '../services/auth_service.dart';
-import '../services/follow_service.dart';
 import '../services/story_service.dart';
 import '../models/post_model.dart';
 import '../models/user_model.dart';
@@ -20,6 +19,9 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
+  final PostService _postService = PostService();
+  final AuthService _authService = AuthService();
+  final StoryService _storyService = StoryService();
   List<PostModel> posts = [];
   UserModel? currentUserProfile;
   bool isLoading = true;
@@ -34,8 +36,8 @@ class _FeedScreenState extends State<FeedScreen> {
   Future<void> _loadFeed() async {
     setState(() => isLoading = true);
     try {
-      final fetchedPosts = await PostService.fetchPosts(postType: 'instagram');
-      final profile = await AuthService.getCurrentUserProfile();
+      final fetchedPosts = await _postService.fetchPosts(postType: 'instagram');
+      final profile = await _authService.getCurrentUserProfile();
 
       if (mounted) {
         setState(() {
@@ -132,7 +134,7 @@ class _FeedScreenState extends State<FeedScreen> {
                           if (currentUserProfile == null) return;
 
                           final List<StoryModel> stories =
-                              await StoryService.getStories();
+                              await _storyService.getStories();
 
                           if (!context.mounted) return;
 
@@ -453,7 +455,7 @@ class _FeedScreenState extends State<FeedScreen> {
         }
       });
 
-      await PostService.toggleLike(post.id);
+      await _postService.toggleLike(post.id);
     } catch (e) {
       _refreshFeed();
       if (mounted) {

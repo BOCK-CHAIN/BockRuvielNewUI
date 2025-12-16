@@ -26,9 +26,7 @@ class ThemeProvider with ChangeNotifier {
     colorScheme: ColorScheme.light(
       primary: Colors.blue,
       secondary: Colors.blueAccent,
-      surface: Colors.white,
-      background: Colors.grey[100]!,
-      onBackground: Colors.black,
+      surface: Colors.grey[100]!,
       onSurface: Colors.black,
     ),
     useMaterial3: true,
@@ -52,8 +50,6 @@ class ThemeProvider with ChangeNotifier {
       primary: Colors.blue,
       secondary: Colors.blueAccent,
       surface: Color(0xFF121212),
-      background: Color(0xFF121212),
-      onBackground: Colors.white,
       onSurface: Colors.white,
     ),
     useMaterial3: true,
@@ -84,7 +80,7 @@ class ThemeProvider with ChangeNotifier {
   }) {
     final theme = Theme.of(context);
     return TextStyle(
-      color: color ?? theme.colorScheme.onBackground,
+      color: color ?? theme.colorScheme.onSurface,
       fontSize: fontSize ?? 16,
       fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
     );

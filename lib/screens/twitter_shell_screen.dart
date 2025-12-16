@@ -262,6 +262,7 @@ class _TwitterHomeFeed extends StatefulWidget {
 }
 
 class _TwitterHomeFeedState extends State<_TwitterHomeFeed> {
+  final PostService _postService = PostService();
   final TextEditingController _tweetController = TextEditingController();
   File? _selectedImageFile;
   Uint8List? _selectedImageBytes;
@@ -275,7 +276,7 @@ class _TwitterHomeFeedState extends State<_TwitterHomeFeed> {
   }
 
   Future<void> _loadTweets() async {
-    final posts = await PostService.fetchPosts(postType: 'twitter');
+    final posts = await _postService.fetchPosts(postType: 'twitter');
     if (!mounted) return;
     setState(() {
       _tweets
@@ -320,7 +321,7 @@ class _TwitterHomeFeedState extends State<_TwitterHomeFeed> {
       return;
     }
 
-    await PostService.createPost(
+    await _postService.createPost(
       caption: _tweetController.text.trim(),
       imageBytes: _selectedImageBytes,
       imageFile: _selectedImageFile,
@@ -351,7 +352,7 @@ class _TwitterHomeFeedState extends State<_TwitterHomeFeed> {
 
     try {
       if (postId != null && postId.isNotEmpty) {
-        await PostService.toggleLike(postId);
+        await _postService.toggleLike(postId);
       }
     } catch (_) {
       if (!mounted) return;

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'activity_screen.dart';
 import 'feed_screen.dart';
 import 'profile.dart';
@@ -40,18 +39,17 @@ class _HomeScreenState extends State<HomeScreen> {
     return screenIndex >= 2 ? screenIndex + 1 : screenIndex;
   }
 
-  Future<void> _logout(BuildContext context) async {
+  Future<void> _logout() async {
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
       await _authService.signOut();
-      if (!mounted) return;
-      Navigator.pushAndRemoveUntil(
-        context,
+      navigator.pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
       );
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         SnackBar(content: Text('Error logging out: $e')),
       );
     }
@@ -76,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 IconButton(
                   icon: Icon(Icons.logout, color: theme.iconTheme.color),
                   tooltip: "Logout",
-                  onPressed: () => _logout(context),
+                  onPressed: _logout,
                 ),
               ],
             ),
@@ -112,7 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               labelType: NavigationRailLabelType.all,
               selectedIconTheme: IconThemeData(
-                color: theme.colorScheme.onBackground,
+                color: theme.colorScheme.onSurface,
                 size: 28,
               ),
               unselectedIconTheme: IconThemeData(
@@ -133,7 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: IconButton(
                   icon: const Icon(Icons.logout, color: Colors.red),
                   tooltip: "Logout",
-                  onPressed: () => _logout(context),
+                  onPressed: _logout,
                 ),
               ),
             ),
@@ -178,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
           : BottomNavigationBar(
               type: BottomNavigationBarType.fixed,
               currentIndex: _getNavigationIndex(_selectedIndex),
-              selectedItemColor: theme.colorScheme.onBackground,
+              selectedItemColor: theme.colorScheme.onSurface,
               unselectedItemColor: theme.disabledColor,
               onTap: (index) {
                 // Special handling for Create button (index 2)

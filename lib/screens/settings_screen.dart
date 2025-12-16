@@ -10,6 +10,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final authService = AuthService();
 
     return Scaffold(
       appBar: AppBar(
@@ -27,7 +28,7 @@ class SettingsScreen extends StatelessWidget {
             leading: const Icon(Icons.logout),
             title: const Text('Logout'),
             onTap: () async {
-              await AuthService.signOut();
+              await authService.signOut();
               if (!context.mounted) return;
               Navigator.pushAndRemoveUntil(
                 context,

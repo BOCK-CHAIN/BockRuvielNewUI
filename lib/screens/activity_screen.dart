@@ -15,19 +15,29 @@ class ActivityScreen extends StatefulWidget {
 }
 
 class _ActivityScreenState extends State<ActivityScreen> {
+  final ActivityService _activityService = ActivityService();
+  final FollowService _followService = FollowService();
   List<ActivityModel> _activities = [];
   bool _isLoading = true;
   Timer? _pollTimer;
+  final AuthService _authService = AuthService();
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
-    _loadActivities();
+    _initialize();
     // Start a periodic poll so activity list refreshes automatically.
     // Polling avoids realtime SDK compatibility across environments.
     _pollTimer = Timer.periodic(const Duration(seconds: 8), (_) {
       _loadActivities();
     });
+  }
+
+  Future<void> _initialize() async {
+    await _loadActivities();
+    _currentUserId = await _authService.currentUserId;
+    setState(() {});
   }
 
   @override
@@ -42,7 +52,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     });
 
     try {
-      final activities = await ActivityService.fetchActivity();
+      final activities = await _activityService.fetchActivity();
       if (mounted) {
         setState(() {
           _activities = activities;
@@ -64,14 +74,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
   }
 
   void _handleFollowBack(String userId) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
-      final currentUserId = AuthService.currentUserId;
+      final currentUserId = _currentUserId;
       if (currentUserId == null) return;
 
       // Optimistically add a follow activity locally so user sees immediate feedback
       final optimistic = ActivityModel(
         id: 'local-${DateTime.now().millisecondsSinceEpoch}',
-        userId: AuthService.currentUserId ?? 'me',
+        userId: _currentUserId ?? 'me',
         username: 'You',
         profileImageUrl: null,
         type: ActivityType.follow,
@@ -86,10 +97,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
       });
 
       // Perform follow via FollowService
-      await FollowService.followUser(currentUserId, userId);
+      await _followService.followUser(currentUserId, userId);
 
       // Create an activity record for the follow on the server
-      await ActivityService.createActivity(
+      await _activityService.createActivity(
         ActivityType.follow.name,
         currentUserId,
         userId,
@@ -98,17 +109,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
       // Refresh server-side activities to sync IDs/timestamps
       await _loadActivities();
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Followed back!')),
-        );
-      }
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(content: Text('Followed back!')),
+      );
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to follow back: $e')),
-        );
-      }
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('Failed to follow back: $e')),
+      );
     }
   }
 
@@ -122,14 +129,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final weekAgo = now.subtract(const Duration(days: 7));
 
     final todayActivities = _activities.where((activity) => 
-      activity.createdAt.isAfter(today)).toList();
+      activity.createdAt.isAfter(today));
     
     final thisWeekActivities = _activities.where((activity) => 
       activity.createdAt.isAfter(weekAgo) && 
-      !activity.createdAt.isAfter(today)).toList();
+      !activity.createdAt.isAfter(today));
       
     final earlierActivities = _activities.where((activity) => 
-      !activity.createdAt.isAfter(weekAgo)).toList();
+      !activity.createdAt.isAfter(weekAgo));
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -161,7 +168,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'User: ${AuthService.currentUserId ?? 'not signed in'} — Activities fetched: ${_activities.length}',
+                            'User: ${_currentUserId ?? 'not signed in'} — Activities fetched: ${_activities.length}',
                             style: TextStyle(color: Colors.grey[700], fontSize: 13),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -172,7 +179,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                             child: OutlinedButton(
                               onPressed: () async {
                                 // Create a small test activity and reload
-                                final current = AuthService.currentUserId;
+                                final current = _currentUserId;
                                 if (current == null) {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not signed in')));
@@ -180,7 +187,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                                   return;
                                 }
 
-                                await ActivityService.createActivity(
+                                await _activityService.createActivity(
                                   ActivityType.like.name,
                                   current,
                                   current,
@@ -212,21 +219,24 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     ...todayActivities.map((activity) => ActivityTile(
                       activity: activity,
                       onFollowBack: _handleFollowBack,
-                    )).toList(),
+                      currentUserId: _currentUserId,
+                    )),
                   ],
                   if (thisWeekActivities.isNotEmpty) ...[
                     const SectionHeader(title: "This Week"),
                     ...thisWeekActivities.map((activity) => ActivityTile(
                       activity: activity,
                       onFollowBack: _handleFollowBack,
-                    )).toList(),
+                      currentUserId: _currentUserId,
+                    )),
                   ],
                   if (earlierActivities.isNotEmpty) ...[
                     const SectionHeader(title: "Earlier"),
                     ...earlierActivities.map((activity) => ActivityTile(
                       activity: activity,
                       onFollowBack: _handleFollowBack,
-                    )).toList(),
+                      currentUserId: _currentUserId,
+                    )),
                   ],
                     ],
                   ),
@@ -273,18 +283,19 @@ class SectionHeader extends StatelessWidget {
 class ActivityTile extends StatelessWidget {
   final ActivityModel activity;
   final Function(String) onFollowBack;
+  final String? currentUserId;
 
   const ActivityTile({
     super.key,
     required this.activity,
     required this.onFollowBack,
+    required this.currentUserId,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isFollow = activity.type == ActivityType.follow;
-    final currentUserId = AuthService.currentUserId;
     final isCurrentUser = activity.userId == currentUserId;
 
     return ListTile(
@@ -298,7 +309,7 @@ class ActivityTile extends StatelessWidget {
       title: RichText(
         text: TextSpan(
           style: TextStyle(
-            color: theme.colorScheme.onBackground, 
+            color: theme.colorScheme.onSurface, 
             fontSize: 15,
             height: 1.4,
           ),
