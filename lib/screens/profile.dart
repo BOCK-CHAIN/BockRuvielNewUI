@@ -512,30 +512,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     final post = posts[index];
                     return GestureDetector(
                       onTap: () => _openPost(post),
-                            child: post.imageUrl != null
-                                ? Image.network(
-                                    post.imageUrl!,
-                                    fit: BoxFit.cover,
-                                    loadingBuilder: (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return Container(
-                                        color: Colors.grey[200],
-                                        child: const Center(
-                                          child: CircularProgressIndicator(),
-                                        ),
-                                      );
-                                    },
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        color: Colors.grey[200],
-                                        child: const Icon(Icons.broken_image, color: Colors.grey),
-                                      );
-                                    },
-                                  )
-                                : Container(
+                      child: Container(
+                        child: post.imageUrl != null
+                            ? Image.network(
+                                post.imageUrl!,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
                                     color: Colors.grey[200],
-                                    child: const Icon(Icons.image, color: Colors.grey),
-                                  ),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey[200],
+                                    child: const Icon(Icons.broken_image, color: Colors.grey),
+                                  );
+                                },
+                              )
+                            : Container(
+                                color: Colors.grey[200],
+                                child: const Icon(Icons.image, color: Colors.grey),
+                              ),
+                      ),
                     );
                   },
                   childCount: posts.length,

@@ -1,10 +1,25 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:math';
 import '../models/user_model.dart';
 import 'auth_service.dart';
 
 class FollowService {
   static final _client = Supabase.instance.client;
+
+  /// Generate a UUID v4
+  static String _generateUUID() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    
+    // Set version bits (4)
+    bytes[6] = (bytes[6] & 0x0F) | 0x40;
+    // Set variant bits (8, 9, A, or B)
+    bytes[8] = (bytes[8] & 0x3F) | 0x80;
+    
+    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20, 32)}';
+  }
 
   /// Follow a user
   static Future<void> followUser(String userId) async {
@@ -28,8 +43,9 @@ class FollowService {
         return; // Already following
       }
 
-      // Create follow relationship
+// Create follow relationship
       await _client.from('follows').insert({
+        'id': _generateUUID(),
         'follower_id': currentUserId,
         'following_id': userId,
         'created_at': DateTime.now().toIso8601String(),

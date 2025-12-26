@@ -27,15 +27,18 @@ class _PostModalState extends State<PostModal> {
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
+        constraints: BoxConstraints(
           maxWidth: 1000,
-          maxHeight: 720,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+          minWidth: 300,
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
             final isNarrow = constraints.maxWidth < 700;
+            final isVeryNarrow = constraints.maxWidth < 400;
 
             final content = Container(
+              height: constraints.maxHeight,
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(16),
@@ -44,7 +47,10 @@ class _PostModalState extends State<PostModal> {
               child: isNarrow
                   ? Column(
                       children: [
-                        _buildMedia(context),
+                        SizedBox(
+                          height: constraints.maxHeight * (isVeryNarrow ? 0.5 : 0.6),
+                          child: _buildMedia(context),
+                        ),
                         const Divider(height: 1),
                         Expanded(child: _buildRightPanel(context)),
                       ],
@@ -65,18 +71,26 @@ class _PostModalState extends State<PostModal> {
     );
   }
 
-  Widget _buildMedia(BuildContext context) {
+   Widget _buildMedia(BuildContext context) {
     return Container(
       color: Colors.black,
       alignment: Alignment.center,
+      height: double.infinity,
       child: _post.imageUrl != null && _post.imageUrl!.isNotEmpty
           ? Image.network(
               _post.imageUrl!,
               fit: BoxFit.contain,
               width: double.infinity,
               height: double.infinity,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: Colors.grey[900],
+                child: const Icon(Icons.broken_image, color: Colors.grey, size: 64),
+              ),
             )
-          : const SizedBox(),
+          : Container(
+              color: Colors.grey[900],
+              child: const Icon(Icons.image, color: Colors.grey, size: 64),
+            ),
     );
   }
 
@@ -186,7 +200,10 @@ class _PostModalState extends State<PostModal> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.chat_bubble_outline),
-                    onPressed: () {},
+                    onPressed: () {
+                      // Focus on comment input
+                      FocusScope.of(context).requestFocus();
+                    },
                   ),
                   IconButton(
                     icon: const Icon(Icons.send_outlined),

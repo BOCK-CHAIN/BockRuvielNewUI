@@ -45,6 +45,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                         )
                       : ChatScreenLive(
+                          key: ValueKey(selectedUser!.id),
                           otherUser: selectedUser!,
                           isEmbedded: true,
                         ),
@@ -141,13 +142,16 @@ class _ChatScreenState extends State<ChatScreen> {
                                 if (isLarge) {
                                   setState(() => selectedUser = user);
                                 } else {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          ChatScreenLive(otherUser: user),
-                                    ),
-                                  );
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            ChatScreenLive(
+                                              key: ValueKey(user.id),
+                                              otherUser: user,
+                                            ),
+                                      ),
+                                    );
                                 }
                               },
                             );
@@ -178,10 +182,10 @@ class _ChatScreenState extends State<ChatScreen> {
                       final c = filteredConvos[i];
 
                       final user = UserModel(
-                        id: c['user_id'],
+                        id: c['user_id']?.toString() ?? '',
                         email: '',
-                        username: c['username'],
-                        profileImageUrl: c['profile_image_url'],
+                        username: c['username']?.toString() ?? 'Unknown',
+                        profileImageUrl: c['profile_image_url']?.toString(),
                         createdAt: DateTime.now(),
                       );
 
@@ -205,7 +209,10 @@ class _ChatScreenState extends State<ChatScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (_) =>
-                                    ChatScreenLive(otherUser: user),
+                                    ChatScreenLive(
+                                      key: ValueKey(user.id),
+                                      otherUser: user,
+                                    ),
                               ),
                             );
                           }
@@ -248,8 +255,26 @@ class _ChatScreenLiveState extends State<ChatScreenLive> {
   @override
   void initState() {
     super.initState();
+    debugPrint('ChatScreenLive initState for user: ${widget.otherUser.id}');
     _loadMessages();
     _subscribe();
+  }
+
+  @override
+  void didUpdateWidget(ChatScreenLive oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.otherUser.id != widget.otherUser.id) {
+      debugPrint('ChatScreenLive didUpdateWidget - user changed from ${oldWidget.otherUser.id} to ${widget.otherUser.id}');
+      _cleanup();
+      _loadMessages();
+      _subscribe();
+    }
+  }
+
+  void _cleanup() {
+    _channel?.unsubscribe();
+    _messages.clear();
+    _controller.clear();
   }
 
   Future<void> _loadMessages() async {
@@ -293,7 +318,7 @@ class _ChatScreenLiveState extends State<ChatScreenLive> {
 
   @override
   void dispose() {
-    _channel?.unsubscribe();
+    _cleanup();
     _controller.dispose();
     _scroll.dispose();
     super.dispose();

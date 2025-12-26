@@ -810,10 +810,10 @@ class _TwitterProfilePage extends StatelessWidget {
     final theme = Theme.of(context);
     final sampleTweets = List.generate(6, (index) {
       return {
-        'username': 'Demo User',
-        'handle': '@demouser',
+        'username': 'Your Profile',
+        'handle': '@yourprofile',
         'time': '· ${index + 1}d',
-        'text': 'This is a sample post #${index + 1} on the profile timeline.',
+        'text': 'Working on Flutter development #${index + 1}. Building amazing apps! 🚀',
         'image': '',
         'liked': false,
         'likes': (index + 1) * 5,
@@ -889,9 +889,9 @@ class _TwitterProfilePage extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      '120',
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+ '${1 + 2 + 3}K',
+                          style: theme.textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -900,7 +900,7 @@ class _TwitterProfilePage extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     Text(
-                      '200',
+                      '${5 + 8 + 12}K',
                       style: theme.textTheme.bodyMedium
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),

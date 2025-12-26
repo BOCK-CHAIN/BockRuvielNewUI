@@ -7,6 +7,7 @@ import '../services/story_service.dart';
 import '../models/post_model.dart';
 import '../models/user_model.dart';
 import '../widgets/comment_section.dart';
+import '../widgets/post_modal.dart';
 import '../models/story_model.dart';
 import 'select_post_type_screen.dart';
 import 'create_story_screen.dart';
@@ -469,6 +470,7 @@ class _FeedScreenState extends State<FeedScreen> {
 
         if (post.imageUrl != null && post.imageUrl!.isNotEmpty)
           GestureDetector(
+            onTap: () => _openPost(post),
             onDoubleTap: () => _toggleLike(post),
             child: AspectRatio(
             aspectRatio: 1,
@@ -616,6 +618,21 @@ class _FeedScreenState extends State<FeedScreen> {
         );
       }
     }
+  }
+
+  void _openPost(PostModel post) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.6),
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(16),
+          child: PostModal(post: post),
+        );
+      },
+    );
   }
 
   void _showComments(PostModel post) {
