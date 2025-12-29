@@ -1,8 +1,63 @@
 import express from 'express';
+import crypto from 'crypto';
 import { verifyJWT } from '../utils/auth.js';
 import supabase from '../utils/auth.js';
 
 const router = express.Router();
+
+/**
+ * Suggested users to follow
+ * GET /api/follows/suggestions?limit=10
+ */
+router.get('/suggestions', verifyJWT, async (req, res) => {
+  try {
+    const currentUserId = req.userId;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+
+    // Get users current user follows
+    const { data: following, error: followingError } = await supabase
+      .from('follows')
+      .select('following_id')
+      .eq('follower_id', currentUserId);
+
+    if (followingError) {
+      throw followingError;
+    }
+
+    const followingIds = (following || []).map((f) => f.following_id);
+    followingIds.push(currentUserId); // exclude self
+
+    // PostgREST expects IN filters as a single string: ("a","b")
+    const inFilter = `(${followingIds.map((id) => `"${id}"`).join(',')})`;
+
+    // Fetch suggested profiles not followed
+    let query = supabase
+      .from('profiles')
+      .select(
+        'id, email, username, full_name, bio, profile_image_url, followers_count, following_count, posts_count, created_at'
+      )
+      .order('followers_count', { ascending: false })
+      .limit(limit);
+
+    if (followingIds.isNotEmpty) {
+      query = query.not('id', 'in', inFilter);
+    }
+
+    const { data: profiles, error: profilesError } = await query;
+
+    if (profilesError) {
+      throw profilesError;
+    }
+
+    res.json({ users: profiles || [] });
+  } catch (error) {
+    console.error('❌ Suggestions error:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+});
 
 /**
  * Follow a user

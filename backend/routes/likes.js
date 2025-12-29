@@ -14,12 +14,10 @@ router.post('/posts/:id/like', verifyJWT, async (req, res) => {
     const userId = req.userId;
     const { id: postId } = req.params;
 
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(postId)) {
+    if (!postId || typeof postId !== 'string') {
       return res.status(400).json({
         error: 'Invalid post ID',
-        message: 'Post ID must be a valid UUID'
+        message: 'Post ID is required'
       });
     }
 
@@ -137,12 +135,10 @@ router.get('/posts/:id/likes', async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 20, 50);
     const offset = parseInt(req.query.offset) || 0;
 
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(postId)) {
+    if (!postId || typeof postId !== 'string') {
       return res.status(400).json({
         error: 'Invalid post ID',
-        message: 'Post ID must be a valid UUID'
+        message: 'Post ID is required'
       });
     }
 

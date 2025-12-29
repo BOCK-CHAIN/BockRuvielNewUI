@@ -1,47 +1,21 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:io';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import '../models/story_model.dart';
-import '../config/supabase_config.dart';
 import 'auth_service.dart';
+import 'api_client.dart';
 
 class StoryService {
-  static final _client = Supabase.instance.client;
   static const Duration storyExpiry = Duration(hours: 24);
 
-  /// Upload story image/video to Supabase Storage
-  static Future<String?> uploadStoryMedia({
-    Uint8List? mediaBytes,
-    File? mediaFile,
-    required String userId,
+  static String _encodeAsDataUrl({
+    required Uint8List bytes,
     required bool isVideo,
-  }) async {
-    try {
-      final extension = isVideo ? 'mp4' : 'jpg';
-      final fileName =
-          'story_${DateTime.now().millisecondsSinceEpoch}_$userId.$extension';
-      final storagePath = '$userId/$fileName';
-      final bucket = SupabaseConfig.storiesBucket;
-
-      if (kIsWeb && mediaBytes != null) {
-        await _client.storage
-            .from(bucket)
-            .uploadBinary(storagePath, mediaBytes,
-                fileOptions: const FileOptions(upsert: true));
-      } else if (!kIsWeb && mediaFile != null) {
-        await _client.storage
-            .from(bucket)
-            .upload(storagePath, mediaFile,
-                fileOptions: const FileOptions(upsert: true));
-      }
-
-      final publicUrl = _client.storage.from(bucket).getPublicUrl(storagePath);
-      return publicUrl;
-    } catch (e) {
-      debugPrint('❌ Story media upload failed: $e');
-      return null;
-    }
+  }) {
+    final base64Data = base64Encode(bytes);
+    final mime = isVideo ? 'video/mp4' : 'image/jpeg';
+    return 'data:$mime;base64,$base64Data';
   }
 
   /// Create a new story
@@ -56,52 +30,42 @@ class StoryService {
       final userId = AuthService.currentUserId;
       if (userId == null) throw Exception('User not authenticated');
 
-      final profile = await AuthService.getCurrentUserProfile();
-      if (profile == null) throw Exception('Profile not found');
+      bool isVideo = false;
+      Uint8List? bytes;
 
-      String? imageUrl;
-      String? videoUrl;
-
-      // Upload media
-      if (imageBytes != null || imageFile != null) {
-        imageUrl = await uploadStoryMedia(
-          mediaBytes: imageBytes,
-          mediaFile: imageFile,
-          userId: userId,
-          isVideo: false,
-        );
+      if (videoBytes != null) {
+        isVideo = true;
+        bytes = videoBytes;
+      } else if (videoFile != null) {
+        isVideo = true;
+        bytes = await videoFile.readAsBytes();
+      } else if (imageBytes != null) {
+        isVideo = false;
+        bytes = imageBytes;
+      } else if (imageFile != null) {
+        isVideo = false;
+        bytes = await imageFile.readAsBytes();
       }
 
-      if (videoBytes != null || videoFile != null) {
-        videoUrl = await uploadStoryMedia(
-          mediaBytes: videoBytes,
-          mediaFile: videoFile,
-          userId: userId,
-          isVideo: true,
-        );
-      }
-
-      if ((imageUrl == null || imageUrl.isEmpty) &&
-          (videoUrl == null || videoUrl.isEmpty)) {
+      if (bytes == null || bytes.isEmpty) {
         throw Exception('No media provided');
       }
 
-      // Insert story
-      final storyId = DateTime.now().millisecondsSinceEpoch.toString();
-      final expiresAt = DateTime.now().add(storyExpiry);
+      final payload = <String, dynamic>{
+        'mediaType': isVideo ? 'video' : 'image',
+        'mediaBase64': _encodeAsDataUrl(bytes: bytes, isVideo: isVideo),
+      };
+      if (caption != null && caption.trim().isNotEmpty) {
+        payload['caption'] = caption.trim();
+      }
 
-      final response = await _client.from('stories').insert({
-        'id': storyId,
-        'user_id': userId,
-        'username': profile.username,
-        'image_url': imageUrl,
-        'video_url': videoUrl,
-        'caption': caption,
-        'created_at': DateTime.now().toIso8601String(),
-        'expires_at': expiresAt.toIso8601String(),
-      }).select().single();
+      final decoded = await ApiClient.post('/stories', body: payload);
+      if (decoded is Map<String, dynamic> && decoded['story'] is Map) {
+        return StoryModel.fromJson(
+            Map<String, dynamic>.from(decoded['story'] as Map));
+      }
 
-      return StoryModel.fromJson(response);
+      return null;
     } catch (e) {
       debugPrint('❌ Error creating story: $e');
       return null;
@@ -114,52 +78,32 @@ class StoryService {
       final userId = AuthService.currentUserId;
       if (userId == null) return {};
 
-      // Get users you follow
-      final following = await _client
-          .from('follows')
-          .select('following_id')
-          .eq('follower_id', userId);
+      final decoded = await ApiClient.get('/stories/following');
+      if (decoded is! Map<String, dynamic>) return {};
 
-      final followingIds = (following as List)
-          .map((f) => f['following_id'] as String)
-          .toList();
+      final raw = decoded['stories_by_user'];
+      if (raw is! Map) return {};
 
-      // Add current user
-      followingIds.add(userId);
-
-      // Fetch active stories
-      final now = DateTime.now().toIso8601String();
-      var query = _client
-          .from('stories')
-          .select('''
-            *,
-            profiles!stories_user_id_fkey(username, profile_image_url)
-          ''')
-          .gte('expires_at', now);
-      
-      // Filter by user IDs - build OR conditions if needed
-      if (followingIds.isNotEmpty) {
-        // Use 'in' filter with proper syntax
-        query = query.inFilter('user_id', followingIds);
-      }
-      
-      final response = await query.order('created_at', ascending: false);
-
-      // Group by user
-      final Map<String, List<StoryModel>> grouped = {};
-      for (var storyJson in response) {
-        final story = StoryModel.fromJson(storyJson);
-        if (!story.isExpired) {
-          grouped.putIfAbsent(story.userId, () => []).add(story);
+      final result = <String, List<StoryModel>>{};
+      raw.forEach((key, value) {
+        if (key is! String) return;
+        if (value is! List) return;
+        final stories = value
+            .whereType<Map>()
+            .map((e) => StoryModel.fromJson(Map<String, dynamic>.from(e)))
+            .where((s) => !s.isExpired)
+            .toList();
+        if (stories.isNotEmpty) {
+          stories.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          result[key] = stories;
         }
-      }
-
-      // Sort stories within each user by created_at
-      grouped.forEach((key, stories) {
-        stories.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       });
 
-      return grouped;
+      if (!result.containsKey(userId)) {
+        result[userId] = const <StoryModel>[];
+      }
+
+      return result;
     } catch (e) {
       debugPrint('❌ Error fetching stories: $e');
       return {};
@@ -169,19 +113,13 @@ class StoryService {
   /// Fetch user's stories
   static Future<List<StoryModel>> fetchUserStories(String userId) async {
     try {
-      final now = DateTime.now().toIso8601String();
-      final response = await _client
-          .from('stories')
-          .select('''
-            *,
-            profiles!stories_user_id_fkey(username, profile_image_url)
-          ''')
-          .eq('user_id', userId)
-          .gte('expires_at', now)
-          .order('created_at', ascending: false);
-
-      return (response as List)
-          .map((json) => StoryModel.fromJson(json))
+      final decoded = await ApiClient.get('/stories/user/$userId');
+      if (decoded is! Map<String, dynamic>) return [];
+      final list = decoded['stories'];
+      if (list is! List) return [];
+      return list
+          .whereType<Map>()
+          .map((e) => StoryModel.fromJson(Map<String, dynamic>.from(e)))
           .where((story) => !story.isExpired)
           .toList();
     } catch (e) {
@@ -193,11 +131,8 @@ class StoryService {
   /// Delete expired stories (should be run periodically)
   static Future<void> deleteExpiredStories() async {
     try {
-      final now = DateTime.now().toIso8601String();
-      await _client
-          .from('stories')
-          .delete()
-          .lt('expires_at', now);
+      // Managed by backend/database policies; keep this as a no-op for now.
+      return;
     } catch (e) {
       debugPrint('❌ Error deleting expired stories: $e');
     }

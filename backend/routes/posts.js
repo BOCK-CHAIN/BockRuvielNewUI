@@ -1,8 +1,22 @@
 import express from 'express';
+import crypto from 'crypto';
 import { verifyJWT, optionalJWT } from '../utils/auth.js';
 import supabase from '../utils/auth.js';
 
 const router = express.Router();
+
+const postsBucket = 'posts';
+
+function buildPublicUrl(storagePath) {
+  return `${process.env.SUPABASE_URL}/storage/v1/object/public/${postsBucket}/${storagePath}`;
+}
+
+function decodeBase64(data) {
+  // Supports both raw base64 and data URLs: data:image/jpeg;base64,XXXX
+  const parts = data.split(',');
+  const base64 = parts.length > 1 ? parts[1] : parts[0];
+  return Buffer.from(base64, 'base64');
+}
 
 /**
  * GET /api/posts
@@ -190,10 +204,17 @@ router.get('/user/:id', async (req, res) => {
 router.post('/', verifyJWT, async (req, res) => {
   try {
     const userId = req.userId;
-    const { caption, image_url, video_url, post_type = 'instagram' } = req.body;
+    const {
+      caption,
+      image_url,
+      video_url,
+      post_type = 'instagram',
+      imageBase64,
+      videoBase64,
+    } = req.body;
 
     // Validate required fields
-    if (!caption && !image_url && !video_url) {
+    if (!caption && !image_url && !video_url && !imageBase64 && !videoBase64) {
       return res.status(400).json({
         error: 'Validation error',
         message: 'Post must have at least caption, image, or video'
@@ -222,8 +243,58 @@ router.post('/', verifyJWT, async (req, res) => {
       });
     }
 
+    let finalImageUrl = image_url || null;
+    let finalVideoUrl = video_url || null;
+
+    // Upload media if base64 provided
+    if (typeof imageBase64 === 'string' && imageBase64.trim().length > 0) {
+      const bytes = decodeBase64(imageBase64.trim());
+      const fileName = `post_${Date.now()}_${userId}.jpg`;
+      const storagePath = `${userId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(postsBucket)
+        .upload(storagePath, bytes, {
+          upsert: true,
+          contentType: 'image/jpeg'
+        });
+
+      if (uploadError) {
+        console.error('❌ Post image upload error:', uploadError);
+        return res.status(500).json({
+          error: 'Storage error',
+          message: 'Failed to upload post image'
+        });
+      }
+
+      finalImageUrl = buildPublicUrl(storagePath);
+    }
+
+    if (typeof videoBase64 === 'string' && videoBase64.trim().length > 0) {
+      const bytes = decodeBase64(videoBase64.trim());
+      const fileName = `post_${Date.now()}_${userId}.mp4`;
+      const storagePath = `${userId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(postsBucket)
+        .upload(storagePath, bytes, {
+          upsert: true,
+          contentType: 'video/mp4'
+        });
+
+      if (uploadError) {
+        console.error('❌ Post video upload error:', uploadError);
+        return res.status(500).json({
+          error: 'Storage error',
+          message: 'Failed to upload post video'
+        });
+      }
+
+      finalVideoUrl = buildPublicUrl(storagePath);
+    }
+
     // Generate post ID
-    const postId = Date.now().toString() + '_' + Math.random().toString(36).substring(2, 11);
+    const postId = crypto.randomUUID();
 
     // Create post
     const { data: post, error } = await supabase
@@ -233,8 +304,8 @@ router.post('/', verifyJWT, async (req, res) => {
         user_id: userId,
         username: profile.username,
         caption: caption || null,
-        image_url: image_url || null,
-        video_url: video_url || null,
+        image_url: finalImageUrl,
+        video_url: finalVideoUrl,
         post_type: post_type,
         likes_count: 0,
         comments_count: 0,

@@ -8,6 +8,7 @@ import commentsRoutes from './routes/comments.js';
 import likesRoutes from './routes/likes.js';
 import followsRoutes from './routes/follows.js';
 import activitiesRoutes from './routes/activities.js';
+import storiesRoutes from './routes/stories.js';
 
 // Load environment variables
 dotenv.config();
@@ -17,7 +18,22 @@ const PORT = process.env.PORT || 3001;
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow non-browser clients (no Origin header)
+    if (!origin) return callback(null, true);
+
+    // Allow any localhost port during development (Flutter web uses random ports)
+    if (/^http:\/\/localhost(:\d+)?$/i.test(origin)) {
+      return callback(null, true);
+    }
+
+    const allowed = process.env.FRONTEND_URL;
+    if (allowed && origin === allowed) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 
@@ -41,6 +57,7 @@ app.use('/api/comments', commentsRoutes);
 app.use('/api/likes', likesRoutes);
 app.use('/api/follows', followsRoutes);
 app.use('/api/activities', activitiesRoutes);
+app.use('/api/stories', storiesRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

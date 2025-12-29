@@ -24,6 +24,7 @@ class _FeedScreenState extends State<FeedScreen> {
   List<PostModel> posts = [];
   List<UserModel> suggestedUsers = [];
   UserModel? currentUserProfile;
+  Map<String, List<StoryModel>> _followingStories = {};
   bool isLoading = true;
   bool isRefreshing = false;
 
@@ -40,12 +41,14 @@ class _FeedScreenState extends State<FeedScreen> {
       final fetchedPosts = await PostService.fetchPosts(postType: 'instagram');
       final suggestions = await FollowService.getSuggestedUsers(limit: 5);
       final profile = await AuthService.getCurrentUserProfile();
+      final stories = await StoryService.fetchFollowingStories();
 
       if (mounted) {
       setState(() {
           posts = fetchedPosts;
           suggestedUsers = suggestions;
           currentUserProfile = profile;
+          _followingStories = stories;
           isLoading = false;
         });
       }
@@ -75,6 +78,49 @@ class _FeedScreenState extends State<FeedScreen> {
     if (result == true) {
       _refreshFeed();
     }
+  }
+
+  Future<void> _openStoryViewer({
+    required List<StoryModel> stories,
+    required String userId,
+    int initialIndex = 0,
+  }) async {
+    final isDesktop = MediaQuery.of(context).size.width > 800;
+
+    if (!isDesktop) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => StoryViewerScreen(
+            stories: stories,
+            userId: userId,
+            initialIndex: initialIndex,
+          ),
+        ),
+      );
+      return;
+    }
+
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.75),
+      builder: (context) {
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420, maxHeight: 760),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: StoryViewerScreen(
+                stories: stories,
+                userId: userId,
+                initialIndex: initialIndex,
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   String _formatTimeAgo(DateTime dateTime) {
@@ -119,16 +165,37 @@ class _FeedScreenState extends State<FeedScreen> {
       onRefresh: _refreshFeed,
       child: ListView(
       children: [
-          // Stories section (placeholder - can be integrated with StoryService later)
         SizedBox(
           height: 130,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: 1, // Just "Your Story" for now
+            itemCount: () {
+              final ids = _followingStories.keys.toList();
+              final me = currentUserProfile?.id;
+              if (me != null && !ids.contains(me)) {
+                ids.insert(0, me);
+              }
+              return ids.length;
+            }(),
             itemBuilder: (context, index) {
-              final String initials = (currentUserProfile?.username.isNotEmpty ?? false)
-                  ? currentUserProfile!.username[0].toUpperCase()
-                  : '?';
+              final ids = _followingStories.keys.toList();
+              final me = currentUserProfile?.id;
+              if (me != null && !ids.contains(me)) {
+                ids.insert(0, me);
+              }
+
+              final userId = ids[index];
+              final stories = _followingStories[userId] ?? const <StoryModel>[];
+              final isMe = me != null && userId == me;
+              final String label = isMe
+                  ? 'Your Story'
+                  : (stories.isNotEmpty ? stories.first.username : 'Story');
+              final String initials = (label.isNotEmpty) ? label[0].toUpperCase() : '?';
+
+              final String? avatarUrl = isMe
+                  ? currentUserProfile?.profileImageUrl
+                  : (stories.isNotEmpty ? stories.first.profileImageUrl : null);
+              final hasAvatar = avatarUrl != null && avatarUrl.isNotEmpty;
 
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
@@ -136,46 +203,28 @@ class _FeedScreenState extends State<FeedScreen> {
                   children: [
                     GestureDetector(
                       onTap: () async {
-                        if (currentUserProfile == null) return;
-
-                        // Check if user already has active stories
-                        final List<StoryModel> stories =
-                            await StoryService.fetchUserStories(currentUserProfile!.id);
-
-                        if (!context.mounted) return;
-
-                        if (stories.isEmpty) {
-                          // No story yet -> create one
-                          await Navigator.push(
+                        if (isMe && stories.isEmpty) {
+                          final created = await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => const CreateStoryScreen(),
                             ),
                           );
-                        } else {
-                          // View existing stories
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => StoryViewerScreen(
-                                stories: stories,
-                                userId: currentUserProfile!.id,
-                              ),
-                            ),
-                          );
+                          if (created == true) {
+                            await _loadFeed();
+                          }
+                          return;
                         }
+
+                        if (stories.isEmpty) return;
+                        await _openStoryViewer(stories: stories, userId: userId);
                       },
                       child: Stack(
                         children: [
                           CircleAvatar(
                             radius: 32,
-                            backgroundImage:
-                                currentUserProfile?.profileImageUrl != null &&
-                                        currentUserProfile!.profileImageUrl!.isNotEmpty
-                                    ? NetworkImage(currentUserProfile!.profileImageUrl!)
-                                    : null,
-                            child: (currentUserProfile?.profileImageUrl == null ||
-                                    currentUserProfile!.profileImageUrl!.isEmpty)
+                            backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
+                            child: !hasAvatar
                                 ? Text(
                                     initials,
                                     style: const TextStyle(
@@ -186,26 +235,29 @@ class _FeedScreenState extends State<FeedScreen> {
                                   )
                                 : null,
                           ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.blue,
+                          if (isMe)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.blue,
+                                ),
+                                child: const Icon(Icons.add,
+                                    size: 18, color: Colors.white),
                               ),
-                              child: const Icon(Icons.add, size: 18, color: Colors.white),
                             ),
-                          ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 5),
-                    const SizedBox(
+                    SizedBox(
                       width: 65,
                       child: Text(
-                        "Your Story",
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                        label,
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w500),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,

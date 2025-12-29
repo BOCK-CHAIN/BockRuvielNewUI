@@ -42,6 +42,12 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
     _loadStory(story: widget.stories[_currentIndex]);
   }
 
+  void _onVerticalDragUpdate(DragUpdateDetails details) {
+    if (details.primaryDelta != null && details.primaryDelta! > 12) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   void dispose() {
     _pageController.dispose();
@@ -137,6 +143,10 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
 
   @override
   Widget build(BuildContext context) {
+    final story = widget.stories[_currentIndex];
+    final username = story.username;
+    final profileUrl = story.profileImageUrl;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -144,6 +154,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
           // Story Content
           GestureDetector(
             onTapDown: _onTapDown,
+            onVerticalDragUpdate: _onVerticalDragUpdate,
             child: PageView.builder(
               controller: _pageController,
               onPageChanged: _onPageChanged,
@@ -209,21 +220,71 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                 (i) => Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                    child: StoryProgressBar(
-                      animationController: i == _currentIndex
-                          ? _animationController
-                          : AnimationController(
-                              vsync: this,
-                              duration: const Duration(seconds: 5),
-                              value: i < _currentIndex ? 1.0 : 0.0,
+                    child: i == _currentIndex
+                        ? StoryProgressBar(
+                            animationController: _animationController,
+                            color: Colors.white,
+                          )
+                        : Container(
+                            height: 2.0,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(1.0),
                             ),
-                      color: i < _currentIndex
-                          ? Colors.white
-                          : Colors.white.withOpacity(0.5),
-                    ),
+                            child: FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: i < _currentIndex ? 1.0 : 0.0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.6),
+                                  borderRadius: BorderRadius.circular(1.0),
+                                ),
+                              ),
+                            ),
+                          ),
                   ),
                 ),
               ),
+            ),
+          ),
+
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 18.0,
+            left: 16.0,
+            right: 64.0,
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundImage:
+                      profileUrl != null && profileUrl.isNotEmpty
+                          ? NetworkImage(profileUrl)
+                          : null,
+                  child: (profileUrl == null || profileUrl.isEmpty)
+                      ? Text(
+                          username.isNotEmpty
+                              ? username[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    username,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
           
@@ -244,32 +305,6 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
             ),
         ],
       ),
-    );
-  }
-}
-
-class StoryProgressBar extends StatelessWidget {
-  final AnimationController animationController;
-  final Color color;
-
-  const StoryProgressBar({
-    super.key,
-    required this.animationController,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: animationController,
-      builder: (context, child) {
-        return LinearProgressIndicator(
-          value: animationController.value,
-          backgroundColor: color.withOpacity(0.3),
-          valueColor: AlwaysStoppedAnimation<Color>(color),
-          minHeight: 2.0,
-        );
-      },
     );
   }
 }

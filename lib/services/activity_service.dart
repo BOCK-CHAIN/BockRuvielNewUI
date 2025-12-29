@@ -1,43 +1,43 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import '../models/activity_model.dart';
 import 'auth_service.dart';
+import 'api_client.dart';
 
 class ActivityService {
-  static const String _baseUrl = 'http://localhost:3001/api';
-  static final _client = Supabase.instance.client;
   // ActivityScreen handles polling/optimistic updates.
 
 /// Fetch activity feed (likes, comments, follows)
-  static Future<List<ActivityModel>> fetchActivity({int limit = 50}) async {
+  static Future<List<ActivityModel>> fetchActivity({
+    int limit = 50,
+    String postType = 'instagram',
+    bool includeFollows = true,
+  }) async {
     try {
-      final session = _client.auth.currentSession;
-      if (session == null) throw Exception('Not authenticated');
-      final token = session.accessToken;
-      if (token == null) throw Exception('Not authenticated');
+      final currentUserId = AuthService.currentUserId;
+      if (currentUserId == null) {
+        throw Exception('Not authenticated');
+      }
 
-      final response = await http.get(
-        Uri.parse('$_baseUrl/activities?limit=$limit'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
+      final decoded = await ApiClient.get(
+        '/activities/feed',
+        queryParameters: {
+          'limit': limit.toString(),
+          'post_type': postType,
+          'includeFollows': includeFollows.toString(),
         },
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final activities = data['activities'] as List;
-        
-        debugPrint('ActivityService.fetchActivity: fetched ${activities.length} rows');
-        
-        return activities
-            .map((json) => ActivityModel.fromJson(json))
-            .toList();
-      } else {
-        throw Exception('Failed to fetch activities: ${response.statusCode}');
-      }
+      if (decoded is! Map<String, dynamic>) return [];
+      final list = decoded['activities'];
+      if (list is! List) return [];
+
+      final activities = list
+          .whereType<Map>()
+          .map((e) => ActivityModel.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+
+      debugPrint('ActivityService.fetchActivity: built ${activities.length} items');
+      return activities;
     } catch (e) {
       debugPrint('❌ Error fetching activity: $e');
       return [];
@@ -56,27 +56,12 @@ class ActivityService {
     String? targetUserId,
   }) async {
     try {
-      final session = _client.auth.currentSession;
-      if (session == null) throw Exception('User not authenticated');
-      final token = session.accessToken;
-
-      final response = await http.post(
-        Uri.parse('$_baseUrl/activities'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'type': type.toString().split('.').last,
-          'targetUserId': targetUserId,
-          'postId': postId,
-          'commentText': commentText,
-        }),
-      );
-
-      if (response.statusCode != 201) {
-        throw Exception('Failed to create activity: ${response.statusCode}');
-      }
+      await ApiClient.post('/activities', body: {
+        'type': type.toString().split('.').last,
+        'targetUserId': targetUserId,
+        'postId': postId,
+        'commentText': commentText,
+      });
     } catch (e) {
       debugPrint('❌ Error creating activity: $e');
     }

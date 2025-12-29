@@ -42,7 +42,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     });
 
     try {
-      final activities = await ActivityService.fetchActivity();
+      final activities = await ActivityService.fetchActivity(postType: 'instagram');
       if (mounted) {
         setState(() {
           _activities = activities;
@@ -289,7 +289,7 @@ class ActivityTile extends StatelessWidget {
         radius: 24,
         backgroundImage: activity.profileImageUrl != null
             ? NetworkImage(activity.profileImageUrl!) as ImageProvider
-            : const AssetImage('assets/images/default_avatar.png'),
+            : const AssetImage('assets/images/story1.jpg'),
       ),
       title: RichText(
         text: TextSpan(

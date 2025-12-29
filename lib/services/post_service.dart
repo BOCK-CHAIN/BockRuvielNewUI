@@ -1,14 +1,25 @@
 import 'dart:typed_data';
 import 'dart:io';
+import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import '../models/post_model.dart';
 import '../models/comment_model.dart';
 import '../config/supabase_config.dart';
 import 'auth_service.dart';
+import 'api_client.dart';
 
 class PostService {
   static final _client = Supabase.instance.client;
+
+  static String _encodeAsDataUrl({
+    required Uint8List bytes,
+    required bool isVideo,
+  }) {
+    final base64Data = base64Encode(bytes);
+    final mime = isVideo ? 'video/mp4' : 'image/jpeg';
+    return 'data:$mime;base64,$base64Data';
+  }
 
   /// Upload image to Supabase Storage
   static Future<String?> uploadImage({
@@ -54,37 +65,31 @@ class PostService {
       final userId = AuthService.currentUserId;
       if (userId == null) throw Exception('User not authenticated');
 
-      final profile = await AuthService.getCurrentUserProfile();
-      if (profile == null) throw Exception('Profile not found');
+      Uint8List? bytes;
+      if (imageBytes != null) {
+        bytes = imageBytes;
+      } else if (imageFile != null) {
+        bytes = await imageFile.readAsBytes();
+      }
 
-      // Upload image if available
-      String? imageUrl;
-      if (imageBytes != null || imageFile != null) {
-        imageUrl = await uploadImage(
-          imageBytes: imageBytes,
-          imageFile: imageFile,
-          userId: userId,
+      final payload = <String, dynamic>{
+        'caption': caption,
+        'post_type': postType,
+      };
+
+      if (bytes != null && bytes.isNotEmpty) {
+        payload['imageBase64'] = _encodeAsDataUrl(bytes: bytes, isVideo: false);
+      }
+
+      final decoded = await ApiClient.post('/posts', body: payload);
+      if (decoded is Map<String, dynamic> && decoded['post'] is Map) {
+        return PostModel.fromJson(
+          Map<String, dynamic>.from(decoded['post'] as Map),
+          currentUserId: userId,
         );
       }
 
-      // Insert post
-      final postId = DateTime.now().millisecondsSinceEpoch.toString();
-      final response = await _client.from('posts').insert({
-        'id': postId,
-        'user_id': userId,
-        'username': profile.username,
-        'caption': caption,
-        'image_url': imageUrl,
-        'post_type': postType,
-        'likes_count': 0,
-        'comments_count': 0,
-        'created_at': DateTime.now().toIso8601String(),
-      }).select().single();
-
-      // Update user's post count
-      await _client.rpc('increment_posts_count', params: {'user_id': userId});
-
-      return PostModel.fromJson(response, currentUserId: userId);
+      return null;
     } catch (e) {
       debugPrint('❌ Error creating post: $e');
       return null;
@@ -99,27 +104,23 @@ class PostService {
   }) async {
     try {
       final userId = AuthService.currentUserId;
-      
-      var query = _client
-          .from('posts')
-          .select('''
-            *,
-            profiles!posts_user_id_fkey(username, profile_image_url),
-            likes(user_id),
-            comments(id)
-          ''');
 
-      // Filter by post type if specified
+      final qp = <String, String>{
+        'limit': limit.toString(),
+        'offset': offset.toString(),
+      };
       if (postType != null) {
-        query = query.eq('post_type', postType);
+        qp['post_type'] = postType;
       }
 
-      final response = await query
-          .order('created_at', ascending: false)
-          .range(offset, offset + limit - 1);
-
-      return (response as List)
-          .map((json) => PostModel.fromJson(json, currentUserId: userId))
+      final decoded = await ApiClient.get('/posts', queryParameters: qp);
+      if (decoded is! Map<String, dynamic>) return [];
+      final list = decoded['posts'];
+      if (list is! List) return [];
+      return list
+          .whereType<Map>()
+          .map((e) => PostModel.fromJson(Map<String, dynamic>.from(e),
+              currentUserId: userId))
           .toList();
     } catch (e) {
       debugPrint('❌ Error fetching posts: $e');
@@ -134,26 +135,21 @@ class PostService {
   }) async {
     try {
       final currentUserId = AuthService.currentUserId;
-      
-      var query = _client
-          .from('posts')
-          .select('''
-            *,
-            profiles!posts_user_id_fkey(username, profile_image_url),
-            likes(user_id),
-            comments(id)
-          ''')
-          .eq('user_id', userId);
 
-      // Filter by post type if specified
+      final qp = <String, String>{};
       if (postType != null) {
-        query = query.eq('post_type', postType);
+        qp['post_type'] = postType;
       }
 
-      final response = await query.order('created_at', ascending: false);
-
-      return (response as List)
-          .map((json) => PostModel.fromJson(json, currentUserId: currentUserId))
+      final decoded = await ApiClient.get('/posts/user/$userId',
+          queryParameters: qp.isEmpty ? null : qp);
+      if (decoded is! Map<String, dynamic>) return [];
+      final list = decoded['posts'];
+      if (list is! List) return [];
+      return list
+          .whereType<Map>()
+          .map((e) => PostModel.fromJson(Map<String, dynamic>.from(e),
+              currentUserId: currentUserId))
           .toList();
     } catch (e) {
       debugPrint('❌ Error fetching user posts: $e');
@@ -167,37 +163,12 @@ class PostService {
       final userId = AuthService.currentUserId;
       if (userId == null) throw Exception('User not authenticated');
 
-      // Check if already liked
-      final existingLike = await _client
-          .from('likes')
-          .select()
-          .eq('post_id', postId)
-          .eq('user_id', userId)
-          .maybeSingle();
-
-      if (existingLike != null) {
-        // Unlike
-        await _client
-            .from('likes')
-            .delete()
-            .eq('post_id', postId)
-            .eq('user_id', userId);
-        
-        // Decrement likes count
-        await _client.rpc('decrement_likes_count', params: {'post_id': postId});
-        return false;
-      } else {
-        // Like
-        await _client.from('likes').insert({
-          'post_id': postId,
-          'user_id': userId,
-          'created_at': DateTime.now().toIso8601String(),
-        });
-        
-        // Increment likes count
-        await _client.rpc('increment_likes_count', params: {'post_id': postId});
-        return true;
+      final decoded = await ApiClient.post('/likes/posts/$postId/like');
+      if (decoded is Map<String, dynamic> && decoded['is_liked'] is bool) {
+        return decoded['is_liked'] as bool;
       }
+
+      return false;
     } catch (e) {
       debugPrint('❌ Error toggling like: $e');
       rethrow;

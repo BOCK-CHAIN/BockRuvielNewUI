@@ -147,6 +147,21 @@ class AuthService {
     }
   }
 
+  static Future<UserModel?> getUserProfileById(String userId) async {
+    try {
+      final response = await _client
+          .from('profiles')
+          .select()
+          .eq('id', userId)
+          .single();
+
+      return UserModel.fromJson(response);
+    } catch (e) {
+      debugPrint('❌ Get user profile error: $e');
+      return null;
+    }
+  }
+
   /// Update user profile
   static Future<void> updateProfile({
     String? fullName,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'create_post_screen.dart';
+import 'create_story_screen.dart';
 
 class SelectPostTypeScreen extends StatelessWidget {
   const SelectPostTypeScreen({super.key});
@@ -163,6 +164,75 @@ class SelectPostTypeScreen extends StatelessWidget {
                               SizedBox(height: 4),
                               Text(
                                 "Share your thoughts and updates on Twitter",
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios, color: Colors.grey),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: InkWell(
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CreateStoryScreen(),
+                      ),
+                    );
+                    if (result == true) {
+                      if (context.mounted) {
+                        Navigator.pop(context, true);
+                      }
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.auto_awesome,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Story',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Share an image or video that expires after 24 hours',
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 14,

@@ -26,12 +26,14 @@ class TweetCard extends StatefulWidget {
   final Map<String, dynamic> post;
   final ValueChanged<Map<String, dynamic>> onUpdate;
   final ValueChanged<Map<String, dynamic>>? onCreateQuote;
+  final VoidCallback? onUserTap;
 
   const TweetCard({
     super.key,
     required this.post,
     required this.onUpdate,
     this.onCreateQuote,
+    this.onUserTap,
   });
 
   @override
@@ -118,6 +120,10 @@ class _TweetCardState extends State<TweetCard>
 
   void _notifyUpdate() {
     widget.onUpdate(Map<String, dynamic>.from(_post));
+  }
+
+  void _handleUserTap() {
+    widget.onUserTap?.call();
   }
 
   Future<void> _toggleLike() async {
@@ -588,35 +594,42 @@ class _TweetCardState extends State<TweetCard>
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const CircleAvatar(
-              radius: 20,
-              backgroundImage: AssetImage('assets/images/story1.jpg'),
+            InkWell(
+              onTap: widget.onUserTap == null ? null : _handleUserTap,
+              customBorder: const CircleBorder(),
+              child: const CircleAvatar(
+                radius: 20,
+                backgroundImage: AssetImage('assets/images/story1.jpg'),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          _username,
-                          style: theme.textTheme.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                          overflow: TextOverflow.ellipsis,
+                  InkWell(
+                    onTap: widget.onUserTap == null ? null : _handleUserTap,
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _username,
+                            style: theme.textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          '$_handle $_time',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey[600]),
-                          overflow: TextOverflow.ellipsis,
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            '$_handle $_time',
+                            style: theme.textTheme.bodySmall
+                                ?.copyWith(color: Colors.grey[600]),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 4),
                   if (_text.isNotEmpty)

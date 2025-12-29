@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -17,10 +18,29 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
   bool _isLoading = false;
   bool _isVideo = false;
   XFile? _mediaFile;
+  Uint8List? _webMediaBytes;
   final TextEditingController _captionController = TextEditingController();
 
   Future<void> _pickMedia() async {
     try {
+      if (kIsWeb) {
+        XFile? media;
+        if (_isVideo) {
+          media = await _picker.pickVideo(source: ImageSource.gallery);
+        } else {
+          media = await _picker.pickImage(source: ImageSource.gallery);
+        }
+        if (media == null) return;
+
+        final data = await media.readAsBytes();
+        if (!mounted) return;
+        setState(() {
+          _webMediaBytes = data;
+          _mediaFile = media;
+        });
+        return;
+      }
+
       XFile? media;
       if (_isVideo) {
         media = await _picker.pickVideo(source: ImageSource.gallery);
@@ -31,6 +51,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
       if (media != null) {
         setState(() {
           _mediaFile = media;
+          _webMediaBytes = null;
         });
       }
     } catch (e) {
@@ -45,26 +66,30 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
   Future<void> _createStory() async {
     if (_mediaFile == null) return;
 
-    if (kIsWeb) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Creating stories from web is not supported yet.'),
-        ),
-      );
-      return;
-    }
-
     setState(() => _isLoading = true);
     try {
-      final file = File(_mediaFile!.path);
-      await StoryService.createStory(
-        imageFile: _isVideo ? null : file,
-        videoFile: _isVideo ? file : null,
-        caption: _captionController.text.trim().isEmpty
-            ? null
-            : _captionController.text.trim(),
-      );
+      if (kIsWeb) {
+        if (_webMediaBytes == null) {
+          throw Exception('No image selected');
+        }
+
+        await StoryService.createStory(
+          imageBytes: _isVideo ? null : _webMediaBytes,
+          videoBytes: _isVideo ? _webMediaBytes : null,
+          caption: _captionController.text.trim().isEmpty
+              ? null
+              : _captionController.text.trim(),
+        );
+      } else {
+        final file = File(_mediaFile!.path);
+        await StoryService.createStory(
+          imageFile: _isVideo ? null : file,
+          videoFile: _isVideo ? file : null,
+          caption: _captionController.text.trim().isEmpty
+              ? null
+              : _captionController.text.trim(),
+        );
+      }
 
       if (mounted) {
         Navigator.of(context).pop(true); // Return success
@@ -113,6 +138,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                     setState(() {
                       _isVideo = value;
                       _mediaFile = null;
+                      _webMediaBytes = null;
                     });
                   },
                 ),
@@ -130,18 +156,20 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                         color: theme.colorScheme.surface,
                         child: const Center(
                           child: Text(
-                            'Video preview not available on web yet',
+                            'Video preview may not be available on web yet',
                             textAlign: TextAlign.center,
                           ),
                         ),
                       ),
                     )
                   : (kIsWeb
-                      ? Image.network(
-                          _mediaFile!.path,
-                          fit: BoxFit.contain,
-                          height: 300,
-                        )
+                      ? (_webMediaBytes == null
+                          ? const SizedBox(height: 300)
+                          : Image.memory(
+                              _webMediaBytes!,
+                              fit: BoxFit.contain,
+                              height: 300,
+                            ))
                       : Image.file(
                           File(_mediaFile!.path),
                           fit: BoxFit.contain,
