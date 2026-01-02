@@ -9,12 +9,14 @@ import likesRoutes from './routes/likes.js';
 import followsRoutes from './routes/follows.js';
 import activitiesRoutes from './routes/activities.js';
 import storiesRoutes from './routes/stories.js';
+import profilesRoutes from './routes/profiles.js';
+import reelsRoutes from './routes/reels.js';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
 // CORS configuration
 app.use(cors({
@@ -58,6 +60,9 @@ app.use('/api/likes', likesRoutes);
 app.use('/api/follows', followsRoutes);
 app.use('/api/activities', activitiesRoutes);
 app.use('/api/stories', storiesRoutes);
+app.use('/api/profiles', profilesRoutes);
+app.use('/api/reels', reelsRoutes);
+
 
 // Global error handler
 app.use((err, req, res, next) => {

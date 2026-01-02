@@ -56,11 +56,11 @@ class _TweetFeedScreenState extends State<TweetFeedScreen> {
     if (result == null) return;
 
     setState(() {
-      if (result["isWeb"]) {
-        _selectedImageBytes = result["bytes"];
+      if (result["isWeb"] as bool? ?? false) {
+        _selectedImageBytes = result["bytes"] as Uint8List?;
         _selectedImageFile = null;
       } else {
-        _selectedImageFile = result["file"];
+        _selectedImageFile = result["file"] as File?;
         _selectedImageBytes = null;
       }
     });
@@ -180,7 +180,7 @@ class _TweetFeedScreenState extends State<TweetFeedScreen> {
                     const Divider(),
                     Expanded(
                       child: ListView.builder(
-                        itemCount: comments.length,
+                        itemCount: comments.length as int?,
                         itemBuilder: (context, i) {
                           final comment = comments[i];
                           return ListTile(
@@ -189,8 +189,8 @@ class _TweetFeedScreenState extends State<TweetFeedScreen> {
                                   AssetImage("assets/images/story1.jpg"),
                             ),
                             title: Text(
-                              comment["comment"] ??
-                                  comment["text"] ??
+                              (comment["comment"] as String?) ??
+                                  (comment["text"] as String?) ??
                                   "No comment",
                               style: const TextStyle(fontSize: 14),
                             ),
@@ -246,7 +246,7 @@ class _TweetFeedScreenState extends State<TweetFeedScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.network(
-          image,
+          image as String,
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) => const SizedBox(),
         ),
@@ -361,16 +361,16 @@ class _TweetFeedScreenState extends State<TweetFeedScreen> {
                                     AssetImage("assets/images/story1.jpg"),
                               ),
                               const SizedBox(width: 10),
-                              Text(tweet["username"],
+                              Text(tweet["username"] as String,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold)),
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Text(tweet["tweet"],
+                          Text(tweet["tweet"] as String,
                               style: const TextStyle(fontSize: 16)),
-                          _buildImage(tweet["image"], tweet["isLocal"],
-                              isWeb: tweet["isWeb"] ?? false),
+                          _buildImage(tweet["image"] as String?, tweet["isLocal"] as bool? ?? false,
+                              isWeb: tweet["isWeb"] as bool? ?? false),
                           const SizedBox(height: 10),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -384,11 +384,11 @@ class _TweetFeedScreenState extends State<TweetFeedScreen> {
                                       ScaleTransition(
                                           scale: anim, child: child),
                                   child: Icon(
-                                    tweet["liked"]
+                                    (tweet["liked"] as bool? ?? false)
                                         ? Icons.favorite
                                         : Icons.favorite_border,
-                                    key: ValueKey(tweet["liked"]),
-                                    color: tweet["liked"]
+                                    key: ValueKey(tweet["liked"] as bool? ?? false),
+                                    color: (tweet["liked"] as bool? ?? false)
                                         ? Colors.red
                                         : Colors.black,
                                   ),

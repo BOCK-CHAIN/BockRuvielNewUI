@@ -397,11 +397,11 @@ class _TwitterHomeFeedState extends State<_TwitterHomeFeed> {
     if (result == null) return;
 
     setState(() {
-      if (result['isWeb']) {
-        _selectedImageBytes = result['bytes'];
+if (result['isWeb'] as bool? ?? false) {
+        _selectedImageBytes = result['bytes'] as Uint8List?;
         _selectedImageFile = null;
       } else {
-        _selectedImageFile = result['file'];
+        _selectedImageFile = result['file'] as File?;
         _selectedImageBytes = null;
       }
     });

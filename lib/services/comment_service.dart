@@ -26,10 +26,16 @@ class CommentService {
     }
   }
 
-  static Future<void> addComment(String postId, String content) async {
-    await ApiClient.post('/comments/posts/$postId/comment', body: {
-      'comment': content,
-    });
+  static Future<Map<String, dynamic>?> addComment(String postId, String content) async {
+    try {
+      final response = await ApiClient.post('/comments/posts/$postId/comment', body: {
+        'comment': content,
+      });
+      return response['comment'] as Map<String, dynamic>?;
+    } catch (e) {
+      debugPrint('❌ CommentService.addComment error: $e');
+      return null;
+    }
   }
 
   static Future<void> deleteComment(String commentId) async {

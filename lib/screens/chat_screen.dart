@@ -167,7 +167,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   // 🔎 Apply search to existing conversations
                   if (searchQuery.isNotEmpty) {
                     filteredConvos = convos.where((c) {
-                      final name = c["username"]?.toLowerCase() ?? "";
+                      final name = (c["username"] as String?)?.toLowerCase() ?? "";
                       return name.contains(searchQuery);
                     }).toList();
                   }
@@ -200,7 +200,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           user.username,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        subtitle: Text(c['last_message'] ?? ""),
+                        subtitle: Text(c['last_message'] as String? ?? ""),
                         onTap: () {
                           if (isLarge) {
                             setState(() => selectedUser = user);

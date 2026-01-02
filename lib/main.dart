@@ -8,6 +8,7 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/create_post_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +47,9 @@ class InstagramCloneApp extends StatelessWidget {
         '/register': (context) => const RegisterScreen(),
         '/home': (context) => const HomeScreen(),
         '/settings': (context) => const SettingsScreen(),
+        '/create-post': (context) => const CreatePostScreen(postType: 'instagram'),
+        '/create-tweet': (context) => const CreatePostScreen(postType: 'twitter'),
+        '/create-reel': (context) => const CreatePostScreen(postType: 'reel'),
       },
     );
   }

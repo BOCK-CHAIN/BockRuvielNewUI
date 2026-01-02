@@ -3,11 +3,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/post_service.dart';
+import '../services/reel_service.dart';
+import '../services/auth_service.dart';
 import '../utils/image_picker_stub.dart'
     if (dart.library.html) '../utils/image_picker_web.dart';
 
 class CreatePostScreen extends StatefulWidget {
-  final String postType; // 'instagram' or 'twitter'
+  final String postType; // 'instagram', 'twitter', or 'reel'
 
   const CreatePostScreen({super.key, this.postType = 'instagram'});
 
@@ -17,38 +19,45 @@ class CreatePostScreen extends StatefulWidget {
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final TextEditingController _captionController = TextEditingController();
-  File? _selectedImageFile;
-  Uint8List? _selectedImageBytes;
+  final TextEditingController _musicController = TextEditingController();
+  File? _selectedFile;
+  Uint8List? _selectedBytes;
   bool _isPosting = false;
+  bool _isVideo = false;
 
   @override
   void dispose() {
     _captionController.dispose();
+    _musicController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final result = await ImagePickerHelper.pickImage();
+  Future<void> _pickMedia() async {
+    final result = widget.postType == 'reel' 
+        ? await ImagePickerHelper.pickVideo()
+        : await ImagePickerHelper.pickImage();
+        
     if (result == null || !mounted) return;
 
     setState(() {
+      _isVideo = widget.postType == 'reel';
       if (result["isWeb"] == true) {
-        _selectedImageBytes = result["bytes"] as Uint8List?;
-        _selectedImageFile = null;
+        _selectedBytes = result["bytes"] as Uint8List?;
+        _selectedFile = null;
       } else {
-        _selectedImageFile = result["file"] as File?;
-        _selectedImageBytes = null;
+        _selectedFile = result["file"] as File?;
+        _selectedBytes = null;
       }
     });
   }
 
-  Future<void> _createPost() async {
+  Future<void> _createContent() async {
     if (_captionController.text.trim().isEmpty &&
-        _selectedImageFile == null &&
-        _selectedImageBytes == null) {
+        _selectedFile == null &&
+        _selectedBytes == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please add a caption or image')),
+          SnackBar(content: Text('Please add a ${_isVideo ? "video" : "image"} or caption')),
         );
       }
       return;
@@ -57,26 +66,47 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     setState(() => _isPosting = true);
 
     try {
-      final post = await PostService.createPost(
-        caption: _captionController.text.trim(),
-        imageBytes: _selectedImageBytes,
-        imageFile: _selectedImageFile,
-        postType: widget.postType,
-      );
-
-      if (post != null && mounted) {
-        Navigator.pop(context, true); // Return true to indicate success
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Post created successfully!')),
+      if (widget.postType == 'reel') {
+        // Create reel
+        final reel = await ReelService.createReel(
+          caption: _captionController.text.trim(),
+          music: _musicController.text.trim(),
+          videoBytes: _selectedBytes,
+          videoFile: _selectedFile,
+          userId: AuthService.currentUserId ?? '',
         );
+
+        if (reel != null && mounted) {
+          Navigator.pop(context, true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Reel created successfully!')),
+          );
+        } else {
+          throw Exception('Failed to create reel');
+        }
       } else {
-        throw Exception('Failed to create post');
+        // Create post
+        final post = await PostService.createPost(
+          caption: _captionController.text.trim(),
+          imageBytes: _selectedBytes,
+          imageFile: _selectedFile,
+          postType: widget.postType,
+        );
+
+        if (post != null && mounted) {
+          Navigator.pop(context, true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${widget.postType == 'twitter' ? "Tweet" : "Post"} created successfully!')),
+          );
+        } else {
+          throw Exception('Failed to create post');
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isPosting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error creating post: $e')),
+          SnackBar(content: Text('Error creating ${widget.postType == 'reel' ? "reel" : "post"}: $e')),
         );
       }
     }
@@ -84,10 +114,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isReel = widget.postType == 'reel';
+    final title = isReel ? "Create Reel" : (widget.postType == 'twitter' ? "Create Tweet" : "Create Post");
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(widget.postType == 'twitter' ? "Create Tweet" : "Create Post"),
+        title: Text(title),
         backgroundColor: Colors.white,
         elevation: 0.5,
         leading: IconButton(
@@ -96,16 +129,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: _isPosting ? null : _createPost,
+            onPressed: _isPosting ? null : _createContent,
             child: _isPosting
                 ? const SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text(
-                    "Post",
-                    style: TextStyle(
+                : Text(
+                    isReel ? "Reel" : (widget.postType == 'twitter' ? "Tweet" : "Post"),
+                    style: const TextStyle(
                       color: Colors.blue,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -119,23 +152,27 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Image preview or picker
-            if (_selectedImageFile != null || _selectedImageBytes != null)
+            // Media preview or picker
+            if (_selectedFile != null || _selectedBytes != null)
               Stack(
                 alignment: Alignment.topRight,
                 children: [
                   Container(
-                    height: 300,
+                    height: isReel ? 400 : 300,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey[300]!),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: kIsWeb && _selectedImageBytes != null
-                          ? Image.memory(_selectedImageBytes!, fit: BoxFit.cover)
-                          : _selectedImageFile != null
-                              ? Image.file(_selectedImageFile!, fit: BoxFit.cover)
+                      child: kIsWeb && _selectedBytes != null
+                          ? isReel
+                              ? _buildVideoPreview(_selectedBytes!)
+                              : Image.memory(_selectedBytes!, fit: BoxFit.cover)
+                          : _selectedFile != null
+                              ? isReel
+                                  ? _buildVideoFilePreview(_selectedFile!)
+                                  : Image.file(_selectedFile!, fit: BoxFit.cover)
                               : const SizedBox(),
                     ),
                   ),
@@ -146,8 +183,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     ),
                     onPressed: () {
                       setState(() {
-                        _selectedImageFile = null;
-                        _selectedImageBytes = null;
+                        _selectedFile = null;
+                        _selectedBytes = null;
                       });
                     },
                   ),
@@ -155,21 +192,25 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               )
             else
               GestureDetector(
-                onTap: _pickImage,
+                onTap: _pickMedia,
                 child: Container(
-                  height: 200,
+                  height: isReel ? 300 : 200,
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey[300]!, style: BorderStyle.solid),
                   ),
-                  child: const Column(
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.add_photo_alternate, size: 64, color: Colors.grey),
-                      SizedBox(height: 8),
+                      Icon(
+                        isReel ? Icons.videocam : Icons.add_photo_alternate,
+                        size: 64,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(height: 8),
                       Text(
-                        'Tap to add photo',
+                        'Tap to add ${isReel ? "video" : "photo"}',
                         style: TextStyle(color: Colors.grey),
                       ),
                     ],
@@ -183,20 +224,72 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             TextField(
               controller: _captionController,
               maxLines: 5,
-              decoration: const InputDecoration(
-                hintText: "Write a caption...",
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.all(12),
+              decoration: InputDecoration(
+                hintText: isReel ? "Write a caption for your reel..." : "Write a caption...",
+                border: const OutlineInputBorder(),
+                contentPadding: const EdgeInsets.all(12),
               ),
             ),
 
+            // Music input (only for reels)
+            if (isReel) ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: _musicController,
+                decoration: const InputDecoration(
+                  hintText: "Add music (optional)",
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.all(12),
+                  prefixIcon: Icon(Icons.music_note),
+                ),
+              ),
+            ],
+
             const SizedBox(height: 16),
 
-            // Add image button
+            // Add media button
             OutlinedButton.icon(
-              onPressed: _pickImage,
-              icon: const Icon(Icons.photo_library),
-              label: const Text('Add Photo'),
+              onPressed: _pickMedia,
+              icon: Icon(isReel ? Icons.videocam : Icons.photo_library),
+              label: Text('Add ${isReel ? "Video" : "Photo"}'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoPreview(Uint8List bytes) {
+    return Container(
+      color: Colors.black,
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.videocam, size: 64, color: Colors.white),
+            SizedBox(height: 8),
+            Text(
+              'Video Selected',
+              style: TextStyle(color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoFilePreview(File file) {
+    return Container(
+      color: Colors.black,
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.videocam, size: 64, color: Colors.white),
+            SizedBox(height: 8),
+            Text(
+              'Video Selected',
+              style: TextStyle(color: Colors.white),
             ),
           ],
         ),

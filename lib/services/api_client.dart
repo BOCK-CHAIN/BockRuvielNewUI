@@ -67,6 +67,20 @@ class ApiClient {
     return _decode(res);
   }
 
+  static Future<dynamic> put(
+    String path, {
+    Map<String, String>? queryParameters,
+    Object? body,
+  }) async {
+    final res = await http.put(
+      _uri(path, queryParameters),
+      headers: await _headers(jsonBody: true),
+      body: jsonEncode(body ?? const {}),
+    );
+
+    return _decode(res);
+  }
+
   static Future<dynamic> delete(
     String path, {
     Map<String, String>? queryParameters,

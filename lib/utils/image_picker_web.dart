@@ -11,4 +11,15 @@ class ImagePickerHelper {
       "isWeb": true,
     };
   }
+
+  static Future<Map<String, dynamic>?> pickVideo() async {
+    final bytes = await ImagePickerWeb.getVideoAsBytes();
+    if (bytes == null) return null;
+
+    return {
+      "file": null,
+      "bytes": bytes,
+      "isWeb": true,
+    };
+  }
 }
