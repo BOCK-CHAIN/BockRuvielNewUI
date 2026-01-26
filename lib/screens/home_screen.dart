@@ -140,7 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 NavigationRailDestination(icon: Icon(Icons.favorite_border), selectedIcon: Icon(Icons.favorite), label: Text('Activity')),
                 NavigationRailDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: Text('Profile')),
                 NavigationRailDestination(icon: Icon(Icons.chat_bubble_outline), selectedIcon: Icon(Icons.chat), label: Text('Chat')),
-                NavigationRailDestination(icon: Icon(Icons.edit), selectedIcon: Icon(Icons.edit_note), label: Text('Tweet')),
+                NavigationRailDestination(icon: Icon(Icons.edit), selectedIcon: Icon(Icons.edit_note), label: Text('Ruviel')),
               ],
               trailing: Padding(
                 padding: const EdgeInsets.only(bottom: 20.0),
@@ -203,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 BottomNavigationBarItem(icon: Icon(Icons.favorite_border), label: "Activity"),
                 BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
                 BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: "Chat"),
-                BottomNavigationBarItem(icon: Icon(Icons.edit), label: "Tweet"),
+                BottomNavigationBarItem(icon: Icon(Icons.edit), label: "Ruviel"),
               ],
             )
           : null,

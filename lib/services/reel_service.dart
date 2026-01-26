@@ -8,15 +8,15 @@ import 'storage_service.dart';
 
 
 class ReelService {
-  static Future<List<ReelModel>> getReels({int limit = 20, int offset = 0}) async {
+static Future<List<ReelModel>> getReels({int limit = 20, int offset = 0}) async {
     final res = await ApiClient.get('/reels', queryParameters: {
       'limit': limit.toString(),
       'offset': offset.toString(),
     });
 
-
+    final currentUserId = await AuthService.currentUserId;
     return (res['reels'] as List)
-        .map((e) => ReelModel.fromJson(e, currentUserId: AuthService.currentUserId))
+        .map((e) => ReelModel.fromJson(e, currentUserId: currentUserId))
         .toList();
   }
 
@@ -27,9 +27,9 @@ class ReelService {
       'offset': offset.toString(),
     });
 
-
+    final currentUserId = await AuthService.currentUserId;
     return (res['reels'] as List)
-        .map((e) => ReelModel.fromJson(e, currentUserId: AuthService.currentUserId))
+        .map((e) => ReelModel.fromJson(e, currentUserId: currentUserId))
         .toList();
   }
 
@@ -41,15 +41,14 @@ class ReelService {
   }) async {
     final base64Video = base64Encode(videoBytes);
 
-
     final res = await ApiClient.post('/reels', body: {
       'videoBase64': base64Video,
       'caption': caption,
       'music': music,
     });
 
-
-    return ReelModel.fromJson(res['reel'], currentUserId: AuthService.currentUserId);
+    final currentUserId = await AuthService.currentUserId;
+    return ReelModel.fromJson(res['reel'], currentUserId: currentUserId);
   }
 
 

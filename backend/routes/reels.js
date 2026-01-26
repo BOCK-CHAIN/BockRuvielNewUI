@@ -1,6 +1,6 @@
 import express from 'express';
 import crypto from 'crypto';
-import { verifyJWT, optionalJWT } from '../utils/auth.js';
+import { requireAuth, optionalJWT } from '../middleware/auth.js';
 import supabase from '../utils/auth.js';
 
 const router = express.Router();
@@ -102,7 +102,7 @@ router.get('/', optionalJWT, async (req, res) => {
  * Create a new reel
  * Requires authentication
  */
-router.post('/', verifyJWT, async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
     const {
@@ -232,7 +232,7 @@ router.post('/', verifyJWT, async (req, res) => {
  * Delete a reel
  * Requires authentication and ownership
  */
-router.delete('/:id', verifyJWT, async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
@@ -388,7 +388,7 @@ router.get('/user/:id', optionalJWT, async (req, res) => {
  * Check if current user liked a specific reel
  * Requires authentication
  */
-router.get('/:id/like-status', verifyJWT, async (req, res) => {
+router.get('/:id/like-status', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
@@ -450,7 +450,7 @@ router.get('/:id/like-status', verifyJWT, async (req, res) => {
  * Like a reel
  * Requires authentication
  */
-router.post('/:id/like', verifyJWT, async (req, res) => {
+router.post('/:id/like', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
@@ -553,7 +553,7 @@ router.post('/:id/like', verifyJWT, async (req, res) => {
  * Unlike a reel
  * Requires authentication
  */
-router.delete('/:id/like', verifyJWT, async (req, res) => {
+router.delete('/:id/like', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
@@ -608,7 +608,7 @@ router.delete('/:id/like', verifyJWT, async (req, res) => {
 /**
  * GET /api/reels/:id/comments
  */
-router.get('/:id/comments', verifyJWT, async (req, res) => {
+router.get('/:id/comments', requireAuth, async (req, res) => {
   const { id } = req.params;
 
   const { data, error } = await supabase
@@ -633,7 +633,7 @@ router.get('/:id/comments', verifyJWT, async (req, res) => {
 /**
  * POST /api/reels/:id/comments
  */
-router.post('/:id/comments', verifyJWT, async (req, res) => {
+router.post('/:id/comments', requireAuth, async (req, res) => {
   const { id } = req.params;
   const userId = req.userId;
   const { comment } = req.body;

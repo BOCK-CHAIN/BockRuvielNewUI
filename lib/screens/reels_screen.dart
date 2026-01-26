@@ -199,7 +199,8 @@ class _ReelPlayerState extends State<ReelPlayer> with TickerProviderStateMixin {
     );
   }
 
-  Future<void> _showReelOptions(BuildContext context) async {
+Future<void> _showReelOptions(BuildContext context) async {
+    final currentUserId = await AuthService.currentUserId;
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.white,
@@ -211,7 +212,7 @@ class _ReelPlayerState extends State<ReelPlayer> with TickerProviderStateMixin {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Show delete option only for reel owner
-            if (widget.reel.userId == AuthService.currentUserId)
+            if (widget.reel.userId == currentUserId)
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
                 title: const Text('Delete reel', style: TextStyle(color: Colors.red)),
@@ -220,7 +221,7 @@ class _ReelPlayerState extends State<ReelPlayer> with TickerProviderStateMixin {
                   _showDeleteConfirmation();
                 },
               ),
-            if (widget.reel.userId != AuthService.currentUserId)
+            if (widget.reel.userId != currentUserId)
               ListTile(
                 leading: const Icon(Icons.report, color: Colors.orange),
                 title: const Text('Report reel'),

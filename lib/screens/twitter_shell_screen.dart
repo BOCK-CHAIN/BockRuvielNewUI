@@ -61,7 +61,7 @@ class _TwitterShellScreenState extends State<TwitterShellScreen> {
                         ),
                         const SizedBox(width: 8),
                         const Text(
-                          'X',
+                          'Ruviel',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -215,7 +215,7 @@ class _TwitterShellScreenState extends State<TwitterShellScreen> {
               ),
               if (isLargeScreen)
                 const Text(
-                  'X',
+                  'Ruviel',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -1036,11 +1036,16 @@ class _TwitterProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userId = AuthService.currentUserId;
-    if (userId == null) {
-      return const Center(child: Text('Not signed in'));
-    }
-    return TwitterUserProfilePage(userId: userId);
+    return FutureBuilder<String?>(
+      future: AuthService.currentUserId,
+      builder: (context, snapshot) {
+        final userId = snapshot.data;
+        if (userId == null) {
+          return const Center(child: Text('Not signed in'));
+        }
+        return TwitterUserProfilePage(userId: userId);
+      },
+    );
   }
 }
 
@@ -1140,9 +1145,19 @@ class _TwitterUserProfilePageState extends State<TwitterUserProfilePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isSelf = widget.userId == AuthService.currentUserId;
+    return FutureBuilder<String?>(
+      future: AuthService.currentUserId,
+      builder: (context, snapshot) {
+        final currentUserId = snapshot.data;
+        final isSelf = widget.userId == currentUserId;
+        return _buildProfileContent(theme, isSelf);
+      },
+    );
+  }
+
+  Widget _buildProfileContent(ThemeData theme, bool isSelf) {
 
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());

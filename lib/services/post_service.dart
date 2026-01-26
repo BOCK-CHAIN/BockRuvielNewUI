@@ -33,7 +33,7 @@ class PostService {
     String postType = 'instagram', // 'instagram' or 'twitter'
   }) async {
     try {
-      final userId = AuthService.currentUserId;
+      final userId = await AuthService.currentUserId;
       if (userId == null) throw Exception('User not authenticated');
 
       Uint8List? bytes;
@@ -68,13 +68,13 @@ class PostService {
   }
 
   /// Fetch posts for feed
-  static Future<List<PostModel>> fetchPosts({
+static Future<List<PostModel>> fetchPosts({
     int limit = 20,
     int offset = 0,
     String? postType, // Filter by 'instagram' or 'twitter'
   }) async {
     try {
-      final userId = AuthService.currentUserId;
+      final userId = await AuthService.currentUserId;
 
       final qp = <String, String>{
         'limit': limit.toString(),
@@ -100,12 +100,12 @@ class PostService {
   }
 
   /// Fetch user's posts
-  static Future<List<PostModel>> fetchUserPosts(
+static Future<List<PostModel>> fetchUserPosts(
     String userId, {
     String? postType, // Filter by 'instagram' or 'twitter'
   }) async {
     try {
-      final currentUserId = AuthService.currentUserId;
+      final currentUserId = await AuthService.currentUserId;
 
       final qp = <String, String>{};
       if (postType != null) {
@@ -129,9 +129,9 @@ class PostService {
   }
 
   /// Toggle like on a post
-  static Future<bool> toggleLike(String postId) async {
+static Future<bool> toggleLike(String postId) async {
     try {
-      final userId = AuthService.currentUserId;
+      final userId = await AuthService.currentUserId;
       if (userId == null) throw Exception('User not authenticated');
 
       final decoded = await ApiClient.post('/likes/posts/$postId/like');

@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyJWT } from '../utils/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 import supabase from '../utils/auth.js';
 
 const router = express.Router();
@@ -9,7 +9,7 @@ const router = express.Router();
  * Toggle bookmark on a post
  * Requires authentication
  */
-router.post('/:postId', verifyJWT, async (req, res) => {
+router.post('/:postId', requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
     const { postId } = req.params;
@@ -109,7 +109,7 @@ router.post('/:postId', verifyJWT, async (req, res) => {
  * Get user's Instagram bookmarks
  * Requires authentication
  */
-router.get('/instagram', verifyJWT, async (req, res) => {
+router.get('/instagram', requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
     const limit = Math.min(parseInt(req.query.limit) || 20, 50);
@@ -208,7 +208,7 @@ router.get('/instagram', verifyJWT, async (req, res) => {
  * Get user's Twitter bookmarks
  * Requires authentication
  */
-router.get('/twitter', verifyJWT, async (req, res) => {
+router.get('/twitter', requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
     const limit = Math.min(parseInt(req.query.limit) || 20, 50);

@@ -20,7 +20,7 @@ class StoryService {
   }
 
   /// Create a new story
-  static Future<StoryModel?> createStory({
+static Future<StoryModel?> createStory({
     Uint8List? imageBytes,
     File? imageFile,
     Uint8List? videoBytes,
@@ -28,7 +28,7 @@ class StoryService {
     String? caption,
   }) async {
     try {
-      final userId = AuthService.currentUserId;
+      final userId = await AuthService.currentUserId;
       if (userId == null) throw Exception('User not authenticated');
 
       bool isVideo = false;
@@ -74,9 +74,9 @@ class StoryService {
   }
 
   /// Fetch active stories from users you follow
-  static Future<Map<String, List<StoryModel>>> fetchFollowingStories() async {
+static Future<Map<String, List<StoryModel>>> fetchFollowingStories() async {
     try {
-      final userId = AuthService.currentUserId;
+      final userId = await AuthService.currentUserId;
       if (userId == null) return {};
 
       final decoded = await ApiClient.get('/stories/following');

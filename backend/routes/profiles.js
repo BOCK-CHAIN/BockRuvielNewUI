@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyJWT } from '../utils/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 import supabase from '../utils/auth.js';
 
 const router = express.Router();
@@ -27,7 +27,7 @@ function decodeBase64(data) {
  * Get current user profile with authentication
  * Requires valid Supabase JWT token
  */
-router.get('/me', verifyJWT, async (req, res) => {
+router.get('/me', requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
 
@@ -82,7 +82,7 @@ router.get('/me', verifyJWT, async (req, res) => {
  * Update current user profile
  * Requires authentication
  */
-router.put('/me', verifyJWT, async (req, res) => {
+router.put('/me', requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
     const {
@@ -143,7 +143,7 @@ router.put('/me', verifyJWT, async (req, res) => {
  * Upload profile image
  * Requires authentication
  */
-router.post('/me/image', verifyJWT, async (req, res) => {
+router.post('/me/image', requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
     const { imageBase64 } = req.body;

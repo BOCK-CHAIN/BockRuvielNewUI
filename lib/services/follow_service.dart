@@ -5,9 +5,9 @@ import 'api_client.dart';
 
 class FollowService {
   /// Follow a user
-  static Future<void> followUser(String userId) async {
+static Future<void> followUser(String userId) async {
     try {
-      final currentUserId = AuthService.currentUserId;
+      final currentUserId = await AuthService.currentUserId;
       if (currentUserId == null) throw Exception('User not authenticated');
 
       if (currentUserId == userId) {
@@ -22,9 +22,9 @@ class FollowService {
   }
 
   /// Unfollow a user
-  static Future<void> unfollowUser(String userId) async {
+static Future<void> unfollowUser(String userId) async {
     try {
-      final currentUserId = AuthService.currentUserId;
+      final currentUserId = await AuthService.currentUserId;
       if (currentUserId == null) throw Exception('User not authenticated');
 
       await ApiClient.delete('/follows/$userId');
@@ -35,9 +35,9 @@ class FollowService {
   }
 
   /// Check if current user is following a user
-  static Future<bool> isFollowing(String userId) async {
+static Future<bool> isFollowing(String userId) async {
     try {
-      final currentUserId = AuthService.currentUserId;
+      final currentUserId = await AuthService.currentUserId;
       if (currentUserId == null) return false;
 
       final decoded = await ApiClient.get('/follows/$userId/status');
@@ -86,9 +86,9 @@ class FollowService {
   }
 
   /// Get suggested users to follow
-  static Future<List<UserModel>> getSuggestedUsers({int limit = 10}) async {
+static Future<List<UserModel>> getSuggestedUsers({int limit = 10}) async {
     try {
-      final currentUserId = AuthService.currentUserId;
+      final currentUserId = await AuthService.currentUserId;
       if (currentUserId == null) return [];
 
       final decoded = await ApiClient.get('/follows/suggestions',

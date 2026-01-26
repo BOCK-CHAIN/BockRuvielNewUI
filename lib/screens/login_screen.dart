@@ -35,11 +35,8 @@ class _LoginScreenState extends State<LoginScreen> {
         const SnackBar(content: Text("Welcome back!")),
       );
       
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/home');
-        }
-      });
+      // Small delay to ensure auth state propagates
+      await Future.delayed(const Duration(milliseconds: 500));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

@@ -7,9 +7,9 @@ import 'api_client.dart';
 class BookmarkService {
 
   /// Toggle bookmark on a post
-  static Future<bool> toggleBookmark(String postId) async {
+static Future<bool> toggleBookmark(String postId) async {
     try {
-      final userId = AuthService.currentUserId;
+      final userId = await AuthService.currentUserId;
       if (userId == null) throw Exception('User not authenticated');
 
       final decoded = await ApiClient.post('/bookmarks/$postId');
@@ -25,12 +25,12 @@ class BookmarkService {
   }
 
   /// Fetch user's Instagram bookmarks
-  static Future<List<PostModel>> fetchInstagramBookmarks({
+static Future<List<PostModel>> fetchInstagramBookmarks({
     int limit = 20,
     int offset = 0,
   }) async {
     try {
-      final currentUserId = AuthService.currentUserId;
+      final currentUserId = await AuthService.currentUserId;
       if (currentUserId == null) throw Exception('User not authenticated');
 
       final queryParams = <String, String>{
@@ -57,12 +57,12 @@ class BookmarkService {
   }
 
   /// Fetch user's Twitter bookmarks
-  static Future<List<PostModel>> fetchTwitterBookmarks({
+static Future<List<PostModel>> fetchTwitterBookmarks({
     int limit = 20,
     int offset = 0,
   }) async {
     try {
-      final currentUserId = AuthService.currentUserId;
+      final currentUserId = await AuthService.currentUserId;
       if (currentUserId == null) throw Exception('User not authenticated');
 
       final queryParams = <String, String>{
@@ -89,9 +89,9 @@ class BookmarkService {
   }
 
   /// Check if a post is bookmarked by current user
-  static Future<bool> isBookmarked(String postId) async {
+static Future<bool> isBookmarked(String postId) async {
     try {
-      final userId = AuthService.currentUserId;
+      final userId = await AuthService.currentUserId;
       if (userId == null) return false;
 
       // This could be implemented as a separate endpoint or 

@@ -1,6 +1,6 @@
 import express from 'express';
 import crypto from 'crypto';
-import { verifyJWT, optionalJWT } from '../utils/auth.js';
+import { requireAuth, optionalJWT } from '../middleware/auth.js';
 import supabase from '../utils/auth.js';
 
 const router = express.Router();
@@ -102,7 +102,7 @@ async function fetchFollowActivities(currentUserId, { limit }) {
  * Build activity feed for current user from likes/comments/follows.
  * Query: limit, post_type (instagram|twitter), includeFollows (true|false)
  */
-router.get('/feed', verifyJWT, async (req, res) => {
+router.get('/feed', requireAuth, async (req, res) => {
   try {
     const currentUserId = req.userId;
     const limit = Math.min(parseInt(req.query.limit) || 50, 100);
@@ -136,7 +136,7 @@ router.get('/feed', verifyJWT, async (req, res) => {
  * Get activities for current user
  * GET /api/activities
  */
-router.get('/', verifyJWT, async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const currentUserId = req.userId;
     const { limit = 50 } = req.query;
@@ -175,7 +175,7 @@ router.get('/', verifyJWT, async (req, res) => {
  * Create a new activity
  * POST /api/activities
  */
-router.post('/', verifyJWT, async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const currentUserId = req.userId;
     const { type, targetUserId, postId, commentText } = req.body;
@@ -227,7 +227,7 @@ router.post('/', verifyJWT, async (req, res) => {
  * Delete an activity
  * DELETE /api/activities/:id
  */
-router.delete('/:id', verifyJWT, async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const currentUserId = req.userId;

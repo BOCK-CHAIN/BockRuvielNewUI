@@ -7,9 +7,9 @@ import 'api_client.dart';
 
 class ChatService {
   /// Send message to a receiver
-  static Future<MessageModel?> sendMessage(String receiverId, String message) async {
+static Future<MessageModel?> sendMessage(String receiverId, String message) async {
     try {
-      final senderId = AuthService.currentUserId;
+      final senderId = await AuthService.currentUserId;
       if (senderId == null) throw Exception('User not authenticated');
 
       if (message.trim().isEmpty) {
@@ -35,9 +35,9 @@ class ChatService {
   }
 
   /// Fetch all messages between current user and another user
-  static Future<List<MessageModel>> fetchMessages(String otherUserId) async {
+static Future<List<MessageModel>> fetchMessages(String otherUserId) async {
     try {
-      final currentUserId = AuthService.currentUserId;
+      final currentUserId = await AuthService.currentUserId;
       if (currentUserId == null) return [];
 
       final decoded = await ApiClient.get('/messages', queryParameters: {
@@ -61,9 +61,9 @@ class ChatService {
   }
 
   /// Mark messages as read
-  static Future<void> markMessagesAsRead(String senderId) async {
+static Future<void> markMessagesAsRead(String senderId) async {
     try {
-      final currentUserId = AuthService.currentUserId;
+      final currentUserId = await AuthService.currentUserId;
       if (currentUserId == null) return;
 
       // Backend marks read automatically when fetching /messages.
@@ -84,9 +84,9 @@ class ChatService {
   }
 
   /// Get list of conversations (users you've messaged or who messaged you)
-  static Future<List<Map<String, dynamic>>> getConversations() async {
+static Future<List<Map<String, dynamic>>> getConversations() async {
     try {
-      final currentUserId = AuthService.currentUserId;
+      final currentUserId = await AuthService.currentUserId;
       if (currentUserId == null) return [];
 
       final decoded = await ApiClient.get('/messages/conversations');
@@ -116,9 +116,9 @@ class ChatService {
     }
   }
 
-  static Future<List<UserModel>> getAllUsers() async {
+static Future<List<UserModel>> getAllUsers() async {
     try {
-      final currentUserId = AuthService.currentUserId;
+      final currentUserId = await AuthService.currentUserId;
       if (currentUserId == null) return [];
 
       final decoded = await ApiClient.get('/messages/users');

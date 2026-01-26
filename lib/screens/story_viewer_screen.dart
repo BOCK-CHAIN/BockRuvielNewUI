@@ -30,8 +30,9 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
   VideoPlayerController? _videoController;
   bool _isPaused = false;
   bool _isLoading = true;
+  String? _currentUserId;
 
-  @override
+@override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
@@ -41,7 +42,12 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
       duration: const Duration(seconds: 5),
     )..addStatusListener(_onAnimationEnd);
 
+    _loadUserId();
     _loadStory(story: widget.stories[_currentIndex]);
+  }
+
+  Future<void> _loadUserId() async {
+    _currentUserId = await AuthService.currentUserId;
   }
 
   void _onVerticalDragUpdate(DragUpdateDetails details) {
@@ -118,8 +124,8 @@ void _onPageChanged(int index) {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Show delete option only for story owner
-            if (story.userId == AuthService.currentUserId)
+// Show delete option only for story owner
+            if (story.userId == _currentUserId)
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
                 title: const Text('Delete story', style: TextStyle(color: Colors.red)),
@@ -385,8 +391,8 @@ GestureDetector(
             ),
           ),
           
-          // More options button (only for story owner)
-          if (story.userId == AuthService.currentUserId)
+// More options button (only for story owner)
+          if (story.userId == _currentUserId)
             Positioned(
               top: MediaQuery.of(context).padding.top + 16.0,
               left: 16.0,

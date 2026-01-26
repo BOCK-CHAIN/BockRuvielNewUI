@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyJWT } from '../utils/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 import supabase from '../utils/auth.js';
 
 const router = express.Router();
@@ -9,7 +9,7 @@ const router = express.Router();
  * Toggle like on a post
  * Requires authentication
  */
-router.post('/posts/:id/like', verifyJWT, async (req, res) => {
+router.post('/posts/:id/like', requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
     const { id: postId } = req.params;

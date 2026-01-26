@@ -297,13 +297,19 @@ class _ChatScreenLiveState extends State<ChatScreenLive> {
   final ScrollController _scroll = ScrollController();
   List<MessageModel> _messages = [];
   dynamic _channel;
+  String? _currentUserId;
 
-  @override
+@override
   void initState() {
     super.initState();
     debugPrint('ChatScreenLive initState for user: ${widget.otherUser.id}');
+    _loadUserId();
     _loadMessages();
     _subscribe();
+  }
+
+  Future<void> _loadUserId() async {
+    _currentUserId = await AuthService.currentUserId;
   }
 
   @override
@@ -420,9 +426,9 @@ class _ChatScreenLiveState extends State<ChatScreenLive> {
         controller: _scroll,
         padding: const EdgeInsets.all(12),
         itemCount: _messages.length,
-        itemBuilder: (context, i) {
+itemBuilder: (context, i) {
           final msg = _messages[i];
-          final isMe = msg.senderId == AuthService.currentUserId;
+          final isMe = msg.senderId == _currentUserId;
 
           return Align(
             alignment:

@@ -1,14 +1,14 @@
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/api_config.dart';
 
 class ApiClient {
   ApiClient._();
 
   static String get baseUrl => ApiConfig.baseUrl;
+  static const _storage = FlutterSecureStorage();
 
   static Future<Map<String, String>> _headers({bool jsonBody = true}) async {
     final headers = <String, String>{
@@ -20,12 +20,12 @@ class ApiClient {
     }
 
     try {
-      final token = Supabase.instance.client.auth.currentSession?.accessToken;
+      final token = await _storage.read(key: 'auth_token');
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
     } catch (e) {
-      debugPrint('ApiClient: failed to read supabase access token: $e');
+      debugPrint('ApiClient: failed to read auth token: $e');
     }
 
     return headers;

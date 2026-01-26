@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyJWT } from '../utils/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 import supabase from '../utils/auth.js';
 
 const router = express.Router();
@@ -69,7 +69,7 @@ async function fetchProfilesMap(userIds) {
  * List users for starting a chat (excluding current user)
  * Requires authentication
  */
-router.get('/users', verifyJWT, async (req, res) => {
+router.get('/users', requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
     const limit = Math.min(parseInt(req.query.limit) || 200, 500);
@@ -105,7 +105,7 @@ router.get('/users', verifyJWT, async (req, res) => {
  * Query params: otherUserId (required), limit, offset
  * Requires authentication
  */
-router.get('/', verifyJWT, async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const readMode = await getReadMode();
     const userId = req.userId;
@@ -232,7 +232,7 @@ router.get('/', verifyJWT, async (req, res) => {
  * Send a message to another user
  * Requires authentication
  */
-router.post('/', verifyJWT, async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const readMode = await getReadMode();
     const userId = req.userId;
@@ -362,7 +362,7 @@ router.post('/', verifyJWT, async (req, res) => {
  * Get list of conversations for current user
  * Requires authentication
  */
-router.get('/conversations', verifyJWT, async (req, res) => {
+router.get('/conversations', requireAuth, async (req, res) => {
   try {
     const readMode = await getReadMode();
     const userId = req.userId;
@@ -463,7 +463,7 @@ router.get('/conversations', verifyJWT, async (req, res) => {
  * Mark a message as read
  * Requires authentication
  */
-router.put('/:id/read', verifyJWT, async (req, res) => {
+router.put('/:id/read', requireAuth, async (req, res) => {
   try {
     const readMode = await getReadMode();
     const userId = req.userId;

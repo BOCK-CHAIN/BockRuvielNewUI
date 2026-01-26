@@ -1,24 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'config/supabase_config.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'providers/theme_provider.dart';
 import 'themes/purple_theme.dart';
 import 'widgets/auth_wrapper.dart';
+import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/profile.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize SharedPreferences
-  await SharedPreferences.getInstance();
-
   // Initialize Supabase
   await Supabase.initialize(
-    url: SupabaseConfig.url,
-    anonKey: SupabaseConfig.anonKey,
+    url: 'YOUR_SUPABASE_URL',
+    anonKey: 'YOUR_SUPABASE_ANON_KEY',
   );
+
+  // Initialize SharedPreferences
+  await SharedPreferences.getInstance();
 
   runApp(
     ChangeNotifierProvider(
@@ -35,7 +39,7 @@ class InstagramCloneApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     
-    return MaterialApp(
+return MaterialApp(
       title: 'Ruviel - Instagram Clone',
       debugShowCheckedModeBanner: false,
       theme: PurpleTheme.lightTheme.copyWith(
@@ -46,6 +50,16 @@ class InstagramCloneApp extends StatelessWidget {
       ),
       themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: const AuthWrapper(),
+      routes: {
+        '/home': (_) => const HomeScreen(),
+        '/login': (_) => const LoginScreen(),
+        '/register': (_) => const RegisterScreen(),
+        '/settings': (_) => const SettingsScreen(),
+        '/profile': (context) {
+          final userId = ModalRoute.of(context)?.settings.arguments as String?;
+          return ProfileScreen(userId: userId);
+        },
+      },
     );
   }
 }

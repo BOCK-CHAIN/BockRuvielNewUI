@@ -1,6 +1,6 @@
 import express from 'express';
 import crypto from 'crypto';
-import { verifyJWT } from '../utils/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 import supabase from '../utils/auth.js';
 
 const router = express.Router();
@@ -9,7 +9,7 @@ const router = express.Router();
  * Suggested users to follow
  * GET /api/follows/suggestions?limit=10
  */
-router.get('/suggestions', verifyJWT, async (req, res) => {
+router.get('/suggestions', requireAuth, async (req, res) => {
   try {
     const currentUserId = req.userId;
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
@@ -63,7 +63,7 @@ router.get('/suggestions', verifyJWT, async (req, res) => {
  * Follow a user
  * POST /api/follows/:userId
  */
-router.post('/:userId', verifyJWT, async (req, res) => {
+router.post('/:userId', requireAuth, async (req, res) => {
   try {
     const { userId: targetUserId } = req.params;
     const currentUserId = req.userId;
@@ -152,7 +152,7 @@ router.post('/:userId', verifyJWT, async (req, res) => {
  * Unfollow a user
  * DELETE /api/follows/:userId
  */
-router.delete('/:userId', verifyJWT, async (req, res) => {
+router.delete('/:userId', requireAuth, async (req, res) => {
   try {
     const { userId: targetUserId } = req.params;
     const currentUserId = req.userId;
@@ -194,7 +194,7 @@ router.delete('/:userId', verifyJWT, async (req, res) => {
  * Check if current user follows a user
  * GET /api/follows/:userId/status
  */
-router.get('/:userId/status', verifyJWT, async (req, res) => {
+router.get('/:userId/status', requireAuth, async (req, res) => {
   try {
     const { userId: targetUserId } = req.params;
     const currentUserId = req.userId;

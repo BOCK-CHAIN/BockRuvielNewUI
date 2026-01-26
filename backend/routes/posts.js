@@ -1,6 +1,6 @@
 import express from 'express';
 import crypto from 'crypto';
-import { verifyJWT, optionalJWT } from '../utils/auth.js';
+import { requireAuth, optionalJWT } from '../middleware/auth.js';
 import supabase from '../utils/auth.js';
 
 const router = express.Router();
@@ -201,7 +201,7 @@ router.get('/user/:id', async (req, res) => {
  * Create a new post
  * Requires authentication
  */
-router.post('/', verifyJWT, async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
     const {
@@ -356,7 +356,7 @@ router.post('/', verifyJWT, async (req, res) => {
  * Delete a post (only by owner)
  * Requires authentication
  */
-router.delete('/:id', verifyJWT, async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
     const { id } = req.params;

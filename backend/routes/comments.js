@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyJWT } from '../utils/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 import supabase from '../utils/auth.js';
 
 const router = express.Router();
@@ -9,7 +9,7 @@ const router = express.Router();
  * Add a comment to a post
  * Requires authentication
  */
-router.post('/posts/:id/comment', verifyJWT, async (req, res) => {
+router.post('/posts/:id/comment', requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
     const { id: postId } = req.params;
@@ -200,7 +200,7 @@ router.get('/posts/:id/comments', async (req, res) => {
  * Delete a comment (only by owner)
  * Requires authentication
  */
-router.delete('/:id', verifyJWT, async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
     const { id: commentId } = req.params;

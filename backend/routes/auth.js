@@ -1,104 +1,77 @@
 import express from 'express';
-import { verifyJWT } from '../utils/auth.js';
+import bcrypt from 'bcrypt';
 import supabase from '../utils/auth.js';
+import { generateToken } from '../utils/jwt.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-/**
- * GET /api/auth/me
- * Get current user profile with authentication
- * Requires valid Supabase JWT token
- */
-router.get('/me', verifyJWT, async (req, res) => {
+// =============================
+// SIGNUP
+// =============================
+router.post('/signup', async (req, res) => {
   try {
-    const userId = req.userId;
+    const { email, password } = req.body;
 
-    // Fetch user profile from Supabase
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
+    const hash = await bcrypt.hash(password, 10);
+
+    const { data, error } = await supabase
+      .from('users')
+      .insert({
+        email,
+        password_hash: hash,
+      })
+      .select()
       .single();
 
-    if (error) {
-      console.error('❌ Profile fetch error:', error);
-      return res.status(404).json({
-        error: 'Profile not found',
-        message: 'User profile does not exist'
-      });
-    }
+    if (error) throw error;
 
-    // Return user data (excluding sensitive fields)
-    res.json({
-      user: {
-        id: req.user.id,
-        email: req.user.email,
-        email_verified: req.user.email_confirmed_at != null,
-        created_at: req.user.created_at,
-        updated_at: req.user.updated_at
-      },
-      profile: {
-        id: profile.id,
-        username: profile.username,
-        full_name: profile.full_name,
-        bio: profile.bio,
-        profile_image_url: profile.profile_image_url,
-        followers_count: profile.followers_count || 0,
-        following_count: profile.following_count || 0,
-        posts_count: profile.posts_count || 0,
-        created_at: profile.created_at,
-        updated_at: profile.updated_at
-      }
-    });
-  } catch (error) {
-    console.error('❌ Auth me endpoint error:', error);
-    res.status(500).json({
-      error: 'Internal server error',
-      message: 'Failed to fetch user profile'
-    });
+    const token = generateToken(data);
+
+    res.json({ token });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
   }
 });
 
-/**
- * GET /api/auth/profile/:id
- * Get public profile information for any user
- * Does not require authentication (public endpoint)
- */
-router.get('/profile/:id', async (req, res) => {
+// =============================
+// LOGIN
+// =============================
+router.post('/login', async (req, res) => {
   try {
-    const { id } = req.params;
+    const { email, password } = req.body;
 
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
-      return res.status(400).json({
-        error: 'Invalid user ID',
-        message: 'User ID must be a valid UUID'
-      });
-    }
-
-    // Fetch public profile data
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('id, username, full_name, bio, profile_image_url, followers_count, following_count, posts_count, created_at')
-      .eq('id', id)
+    const { data: user } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
       .single();
 
-    if (error) {
-      return res.status(404).json({
-        error: 'Profile not found',
-        message: 'User profile does not exist'
-      });
-    }
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
-    res.json(profile);
-  } catch (error) {
-    console.error('❌ Public profile fetch error:', error);
-    res.status(500).json({
-      error: 'Internal server error',
-      message: 'Failed to fetch public profile'
-    });
+    const match = await bcrypt.compare(password, user.password_hash);
+
+    if (!match) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const token = generateToken(user);
+
+    res.json({ token });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
+});
+
+// =============================
+// ME
+// =============================
+router.get('/me', requireAuth, async (req, res) => {
+  const { data } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', req.userId)
+    .single();
+
+  res.json(data);
 });
 
 export default router;

@@ -7,13 +7,13 @@ class ActivityService {
   // ActivityScreen handles polling/optimistic updates.
 
 /// Fetch activity feed (likes, comments, follows)
-  static Future<List<ActivityModel>> fetchActivity({
+static Future<List<ActivityModel>> fetchActivity({
     int limit = 50,
     String postType = 'instagram',
     bool includeFollows = true,
   }) async {
     try {
-      final currentUserId = AuthService.currentUserId;
+      final currentUserId = await AuthService.currentUserId;
       if (currentUserId == null) {
         throw Exception('Not authenticated');
       }

@@ -36,14 +36,20 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   bool isFollowing = false;
   bool isFollowLoading = false;
   late TabController _tabController;
+  String? _currentUserId;
 
-  bool get isCurrentUser => widget.userId == null || widget.userId == AuthService.currentUserId;
+  bool get isCurrentUser => widget.userId == null || widget.userId == _currentUserId;
 
-  @override
+@override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _loadUserId();
     _loadProfile();
+  }
+
+  Future<void> _loadUserId() async {
+    _currentUserId = await AuthService.currentUserId;
   }
 
   @override

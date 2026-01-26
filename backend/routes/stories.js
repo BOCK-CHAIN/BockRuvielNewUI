@@ -1,6 +1,6 @@
 import express from 'express';
 import crypto from 'crypto';
-import { verifyJWT } from '../utils/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 import supabase from '../utils/auth.js';
 
 const router = express.Router();
@@ -26,7 +26,7 @@ function decodeBase64(data) {
  * Create a story (image or video)
  * Body: { mediaType: 'image'|'video', mediaBase64: string, caption?: string }
  */
-router.post('/', verifyJWT, async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
     const { mediaType, mediaBase64 } = req.body;
@@ -132,7 +132,7 @@ router.post('/', verifyJWT, async (req, res) => {
  * GET /api/stories/following
  * Get active stories for current user and people they follow.
  */
-router.get('/following', verifyJWT, async (req, res) => {
+router.get('/following', requireAuth, async (req, res) => {
   try {
     const userId = req.userId;
 
@@ -245,7 +245,7 @@ router.get('/user/:id', async (req, res) => {
  * DELETE /api/stories/:id
  * Delete a specific story
  */
-router.delete('/:id', verifyJWT, async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
